@@ -1,0 +1,17 @@
+feat: Add clinical trials search platform with AI chat and form search
+
+Implement complete CliniBridge platform for finding clinical trials:
+
+- Clinical trials integration: Connect to ClinicalTrials.gov API v2 with 
+  timeout handling, data normalization, and TypeScript types
+- AI chat interface: GPT-4o-mini powered chat with tool-based trial search,
+  auto-scrolling UI, and inline trial result cards
+- Backend (Convex): Database tables for searches/sessions, actions for API 
+  queries, proper separation of queries/mutations
+- Frontend pages: Landing page with dual CTAs, chat page, form search page, 
+  and results page with saved search display
+- UI components: Trial cards, validated search forms, loading/error/empty 
+  states, medical disclaimers
+- Dev setup: Convex deployment config, environment variables, TypeScript fixes
+
+Tech stack: TanStack Router, React, Convex, Vercel AI SDK, OpenAI GPT-4o-mini

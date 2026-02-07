@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TodosRouteImport } from './routes/todos'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as FindRouteImport } from './routes/find'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
+import { Route as ResultsIdRouteImport } from './routes/results.$id'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AdminWaitlistRouteImport } from './routes/admin/waitlist'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -33,9 +37,19 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FindRoute = FindRouteImport.update({
+  id: '/find',
+  path: '/find',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +60,16 @@ const IndexRoute = IndexRouteImport.update({
 const SitemapXmlRoute = SitemapXmlRouteImport.update({
   id: '/sitemap/xml',
   path: '/sitemap/xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsIdRoute = ResultsIdRouteImport.update({
+  id: '/results/$id',
+  path: '/results/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminWaitlistRoute = AdminWaitlistRouteImport.update({
@@ -61,32 +85,44 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/chat': typeof ChatRoute
   '/dashboard': typeof DashboardRoute
+  '/find': typeof FindRoute
   '/onboarding': typeof OnboardingRoute
   '/success': typeof SuccessRoute
   '/todos': typeof TodosRoute
   '/admin/waitlist': typeof AdminWaitlistRoute
+  '/api/chat': typeof ApiChatRoute
+  '/results/$id': typeof ResultsIdRoute
   '/sitemap/xml': typeof SitemapXmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/chat': typeof ChatRoute
   '/dashboard': typeof DashboardRoute
+  '/find': typeof FindRoute
   '/onboarding': typeof OnboardingRoute
   '/success': typeof SuccessRoute
   '/todos': typeof TodosRoute
   '/admin/waitlist': typeof AdminWaitlistRoute
+  '/api/chat': typeof ApiChatRoute
+  '/results/$id': typeof ResultsIdRoute
   '/sitemap/xml': typeof SitemapXmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/chat': typeof ChatRoute
   '/dashboard': typeof DashboardRoute
+  '/find': typeof FindRoute
   '/onboarding': typeof OnboardingRoute
   '/success': typeof SuccessRoute
   '/todos': typeof TodosRoute
   '/admin/waitlist': typeof AdminWaitlistRoute
+  '/api/chat': typeof ApiChatRoute
+  '/results/$id': typeof ResultsIdRoute
   '/sitemap/xml': typeof SitemapXmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -94,42 +130,58 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/chat'
     | '/dashboard'
+    | '/find'
     | '/onboarding'
     | '/success'
     | '/todos'
     | '/admin/waitlist'
+    | '/api/chat'
+    | '/results/$id'
     | '/sitemap/xml'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/chat'
     | '/dashboard'
+    | '/find'
     | '/onboarding'
     | '/success'
     | '/todos'
     | '/admin/waitlist'
+    | '/api/chat'
+    | '/results/$id'
     | '/sitemap/xml'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
+    | '/chat'
     | '/dashboard'
+    | '/find'
     | '/onboarding'
     | '/success'
     | '/todos'
     | '/admin/waitlist'
+    | '/api/chat'
+    | '/results/$id'
     | '/sitemap/xml'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChatRoute: typeof ChatRoute
   DashboardRoute: typeof DashboardRoute
+  FindRoute: typeof FindRoute
   OnboardingRoute: typeof OnboardingRoute
   SuccessRoute: typeof SuccessRoute
   TodosRoute: typeof TodosRoute
   AdminWaitlistRoute: typeof AdminWaitlistRoute
+  ApiChatRoute: typeof ApiChatRoute
+  ResultsIdRoute: typeof ResultsIdRoute
   SitemapXmlRoute: typeof SitemapXmlRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -157,11 +209,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/find': {
+      id: '/find'
+      path: '/find'
+      fullPath: '/find'
+      preLoaderRoute: typeof FindRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -176,6 +242,20 @@ declare module '@tanstack/react-router' {
       path: '/sitemap/xml'
       fullPath: '/sitemap/xml'
       preLoaderRoute: typeof SitemapXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results/$id': {
+      id: '/results/$id'
+      path: '/results/$id'
+      fullPath: '/results/$id'
+      preLoaderRoute: typeof ResultsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/waitlist': {
@@ -197,11 +277,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChatRoute: ChatRoute,
   DashboardRoute: DashboardRoute,
+  FindRoute: FindRoute,
   OnboardingRoute: OnboardingRoute,
   SuccessRoute: SuccessRoute,
   TodosRoute: TodosRoute,
   AdminWaitlistRoute: AdminWaitlistRoute,
+  ApiChatRoute: ApiChatRoute,
+  ResultsIdRoute: ResultsIdRoute,
   SitemapXmlRoute: SitemapXmlRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

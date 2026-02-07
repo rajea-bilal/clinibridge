@@ -2,6 +2,51 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Clinical trial searches
+  searches: defineTable({
+    createdAt: v.number(),
+    mode: v.union(v.literal("chat"), v.literal("form")),
+    condition: v.string(),
+    age: v.number(),
+    location: v.string(),
+    medications: v.optional(v.array(v.string())),
+    additionalInfo: v.optional(v.string()),
+    results: v.array(
+      v.object({
+        nctId: v.string(),
+        title: v.string(),
+        summary: v.string(),
+        status: v.string(),
+        phase: v.string(),
+        conditions: v.array(v.string()),
+        eligibility: v.string(),
+        eligibilityFull: v.optional(v.string()),
+        ageRange: v.string(),
+        locations: v.array(v.string()),
+        interventions: v.array(v.string()),
+        sponsor: v.string(),
+        matchScore: v.number(),
+        matchLabel: v.optional(v.string()),
+        matchReason: v.optional(v.string()),
+        url: v.string(),
+      })
+    ),
+  }).index("by_createdAt", ["createdAt"]),
+
+  // Chat sessions
+  chatSessions: defineTable({
+    createdAt: v.number(),
+    title: v.optional(v.string()),
+    messages: v.array(
+      v.object({
+        role: v.string(),
+        content: v.string(),
+        createdAt: v.number(),
+      })
+    ),
+  }).index("by_createdAt", ["createdAt"]),
+
+
   todos: defineTable({
     text: v.string(),
     completed: v.boolean(),

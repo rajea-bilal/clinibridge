@@ -8,7 +8,9 @@ isProject: false
 
 ## Open
 
-- **OPENAI_API_KEY required**: The chat API route (`/api/chat`) requires the `OPENAI_API_KEY` environment variable to be set. Without it, AI chat will fail. Add to `.env` or environment. Not a code bug — deployment configuration needed.
+- **OPENAI_API_KEY required**: Chat API needs `OPENAI_API_KEY` in `.env`. Not a code bug — config needed for deployment.
+- **About page body bleed**: Global CSS sets `html, body { bg-white }`. Dark pages like `/about` show a white flash below the footer when content is short. Workaround: `useEffect` forces body bg to `#0a0a0a` on mount and cleans up on unmount. Proper fix: set body bg dark globally or per-route via a layout.
+- **Footer invisible on non-landing pages**: Footer uses `animate-on-scroll` (starts at `opacity: 0`, paused). Only pages that call `useScrollAnimation()` trigger it. Added the hook to `/about` — any new page using `<Footer />` also needs it or the footer stays invisible.
 
 ## Refinements / Improvements
 

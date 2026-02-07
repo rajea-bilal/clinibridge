@@ -2,7 +2,7 @@ import { HeartPulse } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="text-white bg-black z-10 border-white/10 border-t pt-16 px-6 pb-16 relative">
+    <footer className="text-white bg-neutral-950 z-10 border-white/[0.06] border-t pt-16 px-6 pb-16 relative">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 animate-on-scroll">
         {/* Brand */}
         <div className="col-span-1 md:col-span-2">
@@ -30,10 +30,10 @@ export function Footer() {
             Search Trials
           </a>
           <a
-            href="/find"
+            href="/#trials"
             className="text-white/60 hover:text-white transition-colors"
           >
-            For Patients
+            Recruiting Now
           </a>
         </div>
 
@@ -41,23 +41,30 @@ export function Footer() {
         <div className="flex flex-col gap-4">
           <h4 className="font-medium text-lg mb-2">Company</h4>
           <a
-            href="#"
+            href="/about"
             className="text-white/60 hover:text-white transition-colors"
           >
-            About Us
-          </a>
-          <a
-            href="#"
-            className="text-white/60 hover:text-white transition-colors"
-          >
-            Careers
+            About
           </a>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col items-center text-center gap-4 text-sm text-white/40 animate-on-scroll anim-delay-100">
-        <p>&copy; {new Date().getFullYear()} CliniBridge. All rights reserved.</p>
+      <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col items-center text-center gap-5 text-sm animate-on-scroll anim-delay-100">
+        <p className="text-white/20 text-[13px] max-w-md leading-relaxed">
+          Built by{" "}
+          <a
+            href="https://www.linkedin.com/in/rajea-bilal/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-400/50 hover:text-emerald-400/70 transition-colors"
+          >
+            Rajea Bilal
+          </a>{" "}
+          — exploring how AI and thoughtful design can make clinical research
+          accessible to the people who need it most.
+        </p>
+        <p className="text-white/20 text-[12px]">&copy; {new Date().getFullYear()} CliniBridge</p>
       </div>
     </footer>
   );

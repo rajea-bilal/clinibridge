@@ -114,6 +114,23 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_polarId", ["polarId"]),
 
+  // Featured trials cache (1-hour TTL, keyed by category)
+  featuredTrialsCache: defineTable({
+    category: v.string(),
+    trials: v.array(
+      v.object({
+        nctId: v.string(),
+        title: v.string(),
+        summary: v.string(),
+        phase: v.string(),
+        status: v.string(),
+        locationCount: v.number(),
+        conditions: v.array(v.string()),
+      })
+    ),
+    fetchedAt: v.number(),
+  }).index("by_category", ["category"]),
+
   // Webhook event log
   webhookEvents: defineTable({
     id: v.optional(v.string()),

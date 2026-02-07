@@ -4,6 +4,7 @@ import { Navbar } from "@/components/landing/navbar";
 import { HeroSection } from "@/components/landing/hero-section";
 import { EmeraldDivider } from "@/components/landing/emerald-divider";
 import { FeaturedTrials } from "@/components/landing/featured-trials";
+import { NetworkSection } from "@/components/landing/network-section";
 import { Footer } from "@/components/landing/footer";
 
 export const Route = createFileRoute("/")({
@@ -22,6 +23,7 @@ function LandingPage() {
       <HeroSection />
       <EmeraldDivider />
       <FeaturedTrials />
+      <NetworkSection />
       <Footer />
     </div>
   );

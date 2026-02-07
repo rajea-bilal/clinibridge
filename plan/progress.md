@@ -22,6 +22,8 @@ isProject: false
 - [x] chat-ui-visual-refinement
 - [x] trial-cards-visual-refinement
 - [x] chat-persistence-bugfix
+- [x] navbar-and-about-page
+- [x] form-ui-visual-consistency
 
 ## Notes
 
@@ -155,3 +157,28 @@ isProject: false
 - **Fix 3**: `saveConversation` now deep-clones messages via `JSON.parse(JSON.stringify())` before storing, stripping any non-serializable proxies/getters from `useChat` internals.
 - **Fix 4**: Added `try/catch` with `console.error` to both `writeStore` and `saveConversation` so failures are visible in the console instead of silently swallowed.
 - **Fix 5**: Added `console.debug` logs in ChatPanel persist calls for debugging (`[ChatPanel] persisting`, `[ChatPanel] unmount save`).
+
+### form-ui-visual-consistency (completed)
+
+- Restyled the `/find` page and form components to match the premium dark aesthetic of the landing page and chat UI. Zero functionality changes.
+- **`find.tsx` (page wrapper)**: Replaced generic `bg-background text-foreground` with `bg-neutral-950 text-neutral-50`, Inter font, `antialiased`, emerald selection color. Added grain overlay, ambient emerald/neutral glow blobs. Added atmospheric depth layers matching ChatPanel — radial emerald mesh, center vignette, geometric grid at `opacity-[0.015]`, diagonal light streak. Header restyled with CliniBridge logo + solar icons, `backdrop-blur-2xl`, `border-white/[0.05]`. Page intro uses emerald accent line, mono label, Bricolage Grotesque heading, staggered `animate-fade-in` entrance. Decorative centered-dot divider between intro and form.
+- **`TrialSearchForm.tsx`**: Removed shadcn `<Input>`, `<Label>`, `<Button>` components (used CSS-variable tokens that clashed with the dark page). Inputs are now minimal bottom-border-only (`border-b border-white/[0.06]`, transparent bg) with whisper-quiet focus state (`border-white/[0.12]`, no rings). Labels use `font-mono text-[11px] uppercase tracking-[0.15em] text-white/70` matching chat section headers. Required asterisks use `text-emerald-400/50`. Errors use `text-red-400/60`. Submit button is an understated ghost button (`bg-white/[0.04] border-white/[0.05]`) with near-invisible emerald glow on hover matching the chat input focus pattern. Added footer disclaimer with flanking emerald gradient lines.
+- **`TrialResultsList.tsx`**: Loading skeletons use `border-white/[0.05] bg-white/[0.02] rounded-2xl`. Error state uses `border-red-500/10 bg-red-500/[0.03]` glass. Results header uses mono-label pattern with emerald accent line. Trial cards wrapped with staggered `.trial-card-enter` animations. Show-more button is borderless, barely-there text. Removed shadcn `Button` import, switched to `@iconify/react` solar icons.
+- **Icon migration**: Switched from lucide-react (`ArrowLeft`, `ClipboardList`, `Search`, `Loader2`) to `@iconify/react` solar icons across all form page components.
+
+### navbar-and-about-page (completed)
+
+- **Navbar**: Stripped down to three links — Search (`/chat`), Trials (`/#trials` scroll anchor), About (`/about`). Removed action buttons (search icon, hamburger). Logo wraps in `<Link to="/">`. Links visible on all screen sizes.
+- **FeaturedTrials**: Changed section `id` from `"projects"` to `"trials"` for cleaner anchor linking from navbar.
+- **About page** (`apps/web/src/routes/about.tsx`): New route at `/about` adapting the provided HTML reference into React + Tailwind matching the existing dark/emerald aesthetic.
+  - Hero section with "The Problem" label, headline, subtitle.
+  - Stats row — three individual cards with subtle top gradient accent lines, stat values in Bricolage Grotesque.
+  - "The Gap" section with blockquote-style callout (left emerald border).
+  - "The Solution" — vertical timeline with 4 steps, emerald dot connectors, hover interactions.
+  - "Under the Hood" — prose section on AI matching.
+  - "What's Next" — roadmap timeline with 6 items, color-coded phase tags (Now=emerald, Soon=amber, Later=neutral), inline labels next to titles.
+  - CTA card with "Start Matching" white pill button matching the network section style.
+  - Ambient glows matching chat UI (`emerald-900/[0.03]`, `neutral-800/[0.05]`), grain overlay, `slideUpFade` animations.
+  - `useScrollAnimation()` hook for footer scroll-triggered animations.
+  - `useEffect` to force `html`/`body` background to `#0a0a0a` (global CSS sets `bg-white` which bled through below footer).
+- **Footer**: Changed `bg-black` to `bg-neutral-950` for seamless blending. Updated links — "About Us" → `/about`, added "Recruiting Now" → `/#trials`, removed dead "Careers" link. Attribution ("Built by Rajea Bilal — exploring how AI and thoughtful design can make clinical research accessible...") moved into the bottom bar, centered above copyright. Name links to LinkedIn profile (`linkedin.com/in/rajea-bilal/`).

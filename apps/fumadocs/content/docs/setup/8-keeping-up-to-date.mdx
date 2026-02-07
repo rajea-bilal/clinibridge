@@ -1,0 +1,272 @@
+---
+title: 'Keeping Up to Date'
+description: 'Stay updated with critical fixes, security patches, and core stack updates'
+icon: RefreshCw
+---
+
+<Note>
+  Last updated on: January 15, 2025
+</Note>
+
+## TLDR
+
+**Check for updates:** Tag `@check-boilerplate-updates` in any AI agent (Cursor, Claude, ChatGPT, etc.)
+
+**What you get:** A categorized report of upstream changes:
+- ✅ **Safe updates** - Security patches, bug fixes, docs (apply automatically)
+- ⚠️ **Medium risk** - Schema/API changes (review first)
+- 🔴 **High risk** - Conflicts with your code (manual merge)
+
+**Apply updates:** Tell your agent which changes to apply. It creates a branch, applies changes, and lets you review before merging.
+
+**Why it matters:** Stay patched with critical fixes without spending manual effort on important updates. Save time for your product, not maintenance.
+
+---
+
+Yugen is actively maintained with regular updates including bug fixes, security patches, and core stack improvements. This guide shows you how to stay updated without breaking your custom work.
+
+## Why Keep Up to Date?
+
+As you build your SaaS on top of Yugen, your codebase will diverge from the upstream boilerplate. However, you still need access to:
+
+- **Security patches** - Critical vulnerabilities in dependencies or core stack
+- **Bug fixes** - Fixes to core functionality that affects your app
+- **Core stack updates** - Improvements to the underlying infrastructure
+- **Configuration improvements** - Better defaults and optimizations
+
+These updates matter regardless of what you're building. Yugen's update detection helps you stay patched without spending manual effort on boilerplate maintenance.
+
+## How It Works
+
+Yugen automatically tracks when you cloned the boilerplate and monitors upstream changes. When you check for updates, you'll see:
+
+- ✅ **Safe Updates** - Documentation, config improvements, bug fixes (can be applied automatically)
+- ⚠️ **Medium Risk** - Schema changes, API updates (review recommended)
+- 🔴 **High Risk** - Conflicts with your custom code (manual review required)
+
+You maintain full control over which updates to apply.
+
+## Checking for Updates
+
+Use any AI agent (Cursor, Claude, ChatGPT, etc.) to check for updates:
+
+### In Cursor
+
+Simply reference the command:
+
+```
+@check-boilerplate-updates
+```
+
+The AI agent will:
+1. Auto-detect when you cloned (from git history)
+2. Fetch changes from upstream since then
+3. Categorize updates by safety level
+4. Present a clear report of what's available
+
+### What You'll See
+
+The command provides a detailed report:
+
+```
+# Boilerplate Update Check
+
+**Last Migration:** Never (or date of last migration)
+**Checking Changes Since:** [date]
+**Upstream Repository:** https://github.com/code-and-creed/yugen
+
+## Summary
+- Total commits since last migration: 15
+- Files changed: 8
+- **Safe updates available:** 5 ✅
+- **Medium risk updates:** 2 ⚠️
+- **High risk updates:** 1 🔴
+
+## Safe Updates (Recommended to Apply)
+
+### Security Patches
+- packages/backend/convex/auth.ts - Fixed authentication vulnerability
+  - Change: Updated BetterAuth dependency to patch CVE-2024-XXXX
+  - Impact: Critical security fix, safe to apply
+
+### Bug Fixes
+- apps/web/src/lib/auth-client.ts - Fixed token refresh issue
+  - Change: Corrected token expiration handling
+  - Impact: Fixes authentication edge case, no conflicts
+
+## Updates Requiring Review
+
+### Medium Risk Changes
+- packages/backend/convex/schema.ts - Added new optional field
+  - Change: Added `metadata` field to users table
+  - Risk: May require migration if you've modified schema
+  - Recommendation: Check if you've customized the users table
+
+### High Risk Changes
+- apps/web/src/router.tsx - Refactored routing logic
+  - Change: Major restructuring of route definitions
+  - Risk: You've modified this file significantly
+  - Action Required: Review diff manually, merge carefully
+```
+
+## Applying Updates
+
+After reviewing the update report, tell your AI agent which changes you want to apply. The agent will handle fetching, merging, and applying the updates for you.
+
+<Note>
+  **Agent-Based Workflow:** You don't need to use git commands manually. Simply tell your AI agent (Cursor, Claude, ChatGPT, etc.) which updates to apply, and it will handle the technical details of fetching, merging, and applying the changes.
+  
+  **Important:** The agent will always apply changes in a separate branch (e.g., `update/boilerplate-updates-YYYY-MM-DD`) so you can review and test before merging to main. This ensures your main branch stays stable.
+</Note>
+
+### Safe Updates
+
+Safe updates can typically be applied automatically:
+
+1. Review the "Safe Updates" section in the report
+2. Confirm these changes don't conflict with your custom work
+3. Tell your AI agent to apply them:
+
+```
+Apply all the safe updates from the boilerplate update check
+```
+
+Or be more specific:
+
+```
+Apply the security patch for auth.ts and the bug fix for token refresh
+```
+
+The agent will:
+- Create a new branch (e.g., `update/boilerplate-updates-2025-01-15`)
+- Fetch the latest changes from upstream
+- Apply the selected updates
+- Handle any merge conflicts if they arise
+- Let you review and test before merging to main
+- Update the tracking file automatically after you merge
+
+### Medium Risk Updates
+
+For medium-risk updates:
+
+1. Review the change description and risk assessment
+2. Check if you've modified the affected files locally
+3. Tell your AI agent to apply them with testing:
+
+```
+Apply the schema update for the users table, but test it first in a branch
+```
+
+Or:
+
+```
+I want to apply the API route changes. Can you apply them and help me test?
+```
+
+The agent will:
+- Create a new branch (e.g., `update/schema-update-2025-01-15`)
+- Apply the updates
+- Help you test the changes
+- Let you review before merging to main
+
+### High Risk Updates
+
+For high-risk updates:
+
+1. Review the full diff and change description
+2. Understand what changed and why
+3. Decide if the update is relevant to your use case
+4. Tell your AI agent to help merge carefully:
+
+```
+I want to apply the routing refactor, but I've modified router.tsx. Can you help me merge it while preserving my custom routes?
+```
+
+The agent will:
+- Create a new branch (e.g., `update/routing-refactor-2025-01-15`)
+- Review your local changes
+- Help merge the upstream changes while preserving your customizations
+- Guide you through any conflicts
+- Ensure your custom work isn't broken
+- Let you test thoroughly before merging to main
+
+## Tracking Migration State
+
+Yugen automatically creates a `.yugen-updates.json` file to track:
+
+- **`initialCloneDate`** - When you first cloned (auto-detected from git)
+- **`lastMigrationDate`** - When you last applied updates (null if never migrated)
+- **`lastCheckedDate`** - When you last checked for updates
+
+This file is automatically managed - you don't need to edit it manually.
+
+## Best Practices
+
+### Regular Checks
+
+Check for updates periodically (weekly or monthly):
+
+```
+@check-boilerplate-updates
+```
+
+This helps you stay aware of critical fixes without constant monitoring.
+
+### Prioritize Critical Fixes
+
+Always prioritize:
+1. **Security patches** - Apply immediately after review
+2. **Critical bug fixes** - Fixes that affect core functionality
+3. **Dependency updates** - Keep dependencies secure and up-to-date
+
+### Review Before Applying
+
+Even for "safe" updates:
+- Review the changes in the report
+- Confirm they make sense for your use case
+- Tell your agent to apply them
+- Test after applying to verify nothing breaks
+
+### Save Time for Your Product
+
+The goal is to save manual work for your actual product idea, not boilerplate maintenance. Use the safety categorization to quickly identify what needs attention vs. what can be safely ignored.
+
+## Troubleshooting
+
+### "No tracking file found"
+
+The command will automatically create `.yugen-updates.json` on first run. If you see this error, it means git history detection failed - the file will be created with the current date.
+
+### "Upstream remote not found"
+
+Add the upstream remote:
+
+```bash
+git remote add upstream https://github.com/code-and-creed/yugen.git
+```
+
+### "Conflicts detected"
+
+If you see conflicts when applying updates:
+1. Review the conflict markers
+2. Understand what changed in both versions
+3. Manually resolve, preserving your customizations
+4. Test thoroughly before committing
+
+## Next Steps
+
+After checking for updates, you might want to:
+
+<Cards>
+  <Card
+    title="Production Deployment"
+    href="/docs/setup/3-production-deployment"
+    description="Deploy your updates to production"
+  />
+  <Card
+    title="Solo Workflow"
+    href="/docs/setup/6-solo-workflow"
+    description="Daily development workflow"
+  />
+</Cards>
+

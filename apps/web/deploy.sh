@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+set -e
+
+# Ensure we're running in bash (required for arrays)
+if [ -z "$BASH_VERSION" ]; then
+  echo "❌ This script requires bash. Please run with: bash deploy.sh"
+  exit 1
+fi
+
+# ============================================================================
+# CLEAN INSTALL - Ensure correct package versions
+# ============================================================================
+echo "🧹 Ensuring clean package installation..."
+cd ../..
+rm -rf node_modules packages/*/node_modules apps/*/node_modules bun.lock
+bun install
+cd apps/web
+echo "✅ Clean install complete"
+echo ""
+
+# ============================================================================
+# CUSTOM ENVIRONMENT VARIABLES CONFIGURATION
+# ============================================================================
+# Add your custom environment variable names here
+# These will be automatically preserved when the script updates .env
+#
+# IMPORTANT: Also add these same variables to apps/web/alchemy.run.ts bindings!
+CUSTOM_ENV_VARS=(
+  "VITE_TEST_VAR"  # Test variable
+  "VITE_HUMANBEHAVIOR_API_KEY"  # HumanBehavior Analytics API Key
+)
+# ============================================================================
+
+# Deploy Convex backend and capture the production URL
+echo "📦 Deploying Convex backend..."
+cd ../../packages/backend
+
+# Deploy Convex and capture the production URL while showing output in real-time
+echo ""
+DEPLOY_OUTPUT=$(bunx convex deploy --yes 2>&1 | tee /dev/tty)
+
+# Extract production URL from deployment output
+# Convex outputs something like: "Deployed to: https://xxx.convex.cloud"
+PROD_CONVEX_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE "https://[a-z0-9-]+\.convex\.cloud" | head -1)
+
+# If we couldn't extract from output, try reading from deployment config
+if [ -z "$PROD_CONVEX_URL" ]; then
+  echo "⚠️  Could not extract URL from deploy output, reading from config..."
+  
+  # Try to get from convex deployment settings
+  if [ -f ".env.local" ]; then
+    # Get the prod deployment from CONVEX_DEPLOYMENT
+    PROD_DEPLOYMENT=$(grep "^CONVEX_DEPLOYMENT=" .env.local | cut -d '=' -f2 | cut -d '#' -f1 | xargs)
+    
+    # If it's a prod deployment (prod:xxx), construct the URL
+    if [[ "$PROD_DEPLOYMENT" == prod:* ]]; then
+      DEPLOYMENT_NAME="${PROD_DEPLOYMENT#prod:}"
+      PROD_CONVEX_URL="https://${DEPLOYMENT_NAME}.convex.cloud"
+    else
+      echo "❌ No production deployment found. Please run 'bunx convex deploy' manually first."
+      exit 1
+    fi
+  fi
+fi
+
+if [ -z "$PROD_CONVEX_URL" ]; then
+  echo "❌ Failed to determine production Convex URL"
+  exit 1
+fi
+
+PROD_CONVEX_SITE_URL="${PROD_CONVEX_URL//.convex.cloud/.convex.site}"
+
+# Move to web directory
+cd ../../apps/web
+
+# Check if .env exists and read existing SITE_URL
+# This will be used for Convex, preserving the user's configured SITE_URL
+ENV_SITE_URL=""
+if [ -f ".env" ]; then
+  ENV_SITE_URL=$(grep "^SITE_URL=" .env | cut -d '=' -f2 | cut -d '#' -f1 | xargs || echo "")
+fi
+
+echo "✅ Convex deployed"
+echo "   CONVEX_URL: $PROD_CONVEX_URL"
+echo "   CONVEX_SITE_URL: $PROD_CONVEX_SITE_URL"
+
+# Deploy to Cloudflare with production Convex URLs
+echo ""
+echo "🚀 Deploying to Cloudflare..."
+echo "ℹ️  Note: Custom environment variables should be set manually in Cloudflare dashboard"
+
+# Export env vars for Alchemy to pick up
+export VITE_CONVEX_URL="$PROD_CONVEX_URL"
+export VITE_CONVEX_SITE_URL="$PROD_CONVEX_SITE_URL"
+
+# Use existing SITE_URL if available, otherwise use env var or placeholder
+if [ -n "$ENV_SITE_URL" ] && [ "$ENV_SITE_URL" != "https://your-production-domain.com" ]; then
+  export SITE_URL="$ENV_SITE_URL"
+  echo "ℹ️  Using SITE_URL from .env: $ENV_SITE_URL"
+elif [ -n "$SITE_URL" ]; then
+  export SITE_URL="$SITE_URL"
+  echo "ℹ️  Using SITE_URL from environment: $SITE_URL"
+else
+  export SITE_URL="https://your-production-domain.com"
+  echo "⚠️  Using placeholder SITE_URL (you can set SITE_URL in .env or env var)"
+fi
+
+# Export custom env vars from .env (overrides .env.local)
+# This ensures Alchemy uses values from .env, not .env.local
+for var_name in "${CUSTOM_ENV_VARS[@]}"; do
+  if [ -f ".env" ]; then
+    var_value=$(grep "^${var_name}=" .env 2>/dev/null | cut -d '=' -f2- | sed 's/^"//;s/"$//' || echo "")
+    if [ -n "$var_value" ]; then
+      export "${var_name}=${var_value}"
+      echo "ℹ️  Using ${var_name} from .env (not .env.local)"
+    fi
+  fi
+done
+
+# Deploy code with Alchemy (no bindings - env vars managed separately)
+echo "📦 Deploying code to Cloudflare..."
+ALCHEMY_OUTPUT=$(alchemy deploy 2>&1 | tee /dev/tty)
+
+# Extract the Cloudflare Workers URL from output
+# Alchemy outputs: "Web    -> https://xxx.workers.dev"
+CLOUDFLARE_URL=$(echo "$ALCHEMY_OUTPUT" | grep -oE "https://[a-zA-Z0-9.-]+\.workers\.dev" | head -1)
+
+# Determine final SITE_URL for .env file
+# Use Cloudflare URL if we found it and didn't have a custom SITE_URL from .env
+if [ -n "$CLOUDFLARE_URL" ] && ([ -z "$ENV_SITE_URL" ] || [ "$ENV_SITE_URL" == "https://your-production-domain.com" ]); then
+  FINAL_SITE_URL="$CLOUDFLARE_URL"
+  echo ""
+  echo "✅ Detected Cloudflare URL: $CLOUDFLARE_URL"
+else
+  FINAL_SITE_URL="$SITE_URL"
+fi
+
+# Determine SITE_URL for Convex - prioritize .env SITE_URL if it exists
+if [ -n "$ENV_SITE_URL" ] && [ "$ENV_SITE_URL" != "https://your-production-domain.com" ]; then
+  CONVEX_SITE_URL_VALUE="$ENV_SITE_URL"
+else
+  CONVEX_SITE_URL_VALUE="$FINAL_SITE_URL"
+fi
+
+# Preserve custom env vars from .env BEFORE overwriting
+echo "💾 Saving production URLs to .env (preserving custom env vars)..."
+
+# Read existing custom env vars from .env (NOT .env.local)
+# Store in temp file to avoid associative array issues
+TEMP_ENV_FILE=$(mktemp)
+for var_name in "${CUSTOM_ENV_VARS[@]}"; do
+  if [ -f ".env" ]; then
+    var_value=$(grep "^${var_name}=" .env 2>/dev/null | cut -d '=' -f2- | sed 's/^"//;s/"$//' || echo "")
+    if [ -n "$var_value" ]; then
+      echo "${var_name}=${var_value}" >> "$TEMP_ENV_FILE"
+    fi
+  fi
+done
+
+# Start writing .env file
+cat > .env << EOF
+# Production Convex URLs (auto-generated by deploy.sh)
+VITE_CONVEX_URL=$PROD_CONVEX_URL
+VITE_CONVEX_SITE_URL=$PROD_CONVEX_SITE_URL
+SITE_URL=$FINAL_SITE_URL
+EOF
+
+# Append preserved custom env vars if any exist
+if [ -s "$TEMP_ENV_FILE" ]; then
+  echo "" >> .env
+  echo "# Custom Environment Variables (preserved from previous .env)" >> .env
+  cat "$TEMP_ENV_FILE" >> .env
+fi
+
+# Clean up temp file
+rm -f "$TEMP_ENV_FILE"
+
+echo ""
+echo "✅ Deployment complete!"
+echo "   Production URLs saved to apps/web/.env"
+echo "   SITE_URL: $FINAL_SITE_URL"
+
+# Update Convex SITE_URL to match .env file
+cd ../../packages/backend
+CURRENT_CONVEX_SITE_URL=$(bunx convex env list --prod 2>&1 | grep "SITE_URL" | awk '{print $2}' || echo "")
+
+if [ "$CURRENT_CONVEX_SITE_URL" != "$CONVEX_SITE_URL_VALUE" ]; then
+  echo ""
+  echo "🔄 Updating Convex SITE_URL to match .env..."
+  bunx convex env set SITE_URL "$CONVEX_SITE_URL_VALUE" --prod
+  echo "✅ Convex SITE_URL updated to: $CONVEX_SITE_URL_VALUE"
+else
+  echo ""
+  echo "✅ Convex SITE_URL already up to date: $CONVEX_SITE_URL_VALUE"
+fi
+

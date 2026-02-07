@@ -1,0 +1,846 @@
+---
+title: 'MVP Documentation'
+description: Document your MVP (Idea, Marketing Strategy, Technical Architecture, Cost Estimation, Database Design, and User Flows)
+icon: FileText
+---
+
+<Callout type="info">
+
+  Last updated on: 1st November 2025
+
+</Callout>
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+## Why Documentation Matters
+
+In the age of AI, documentation is no longer optional - it's critical. Without it, you lose context, repeat mistakes, and confuse yourself and your Agents as your codebase grows.
+
+**Without docs:**
+
+- ❌ Lose context between sessions
+
+- ❌ Repeat the same mistakes
+
+- ❌ Confuse AI assistants with missing context
+
+- ❌ Struggle to onboard team members
+
+- ❌ Forget why you made decisions
+
+**With good docs:**
+
+- ✅ Better AI assistance (Agents will love this context!)
+
+- ✅ Faster Developer onboarding (if you want to hire in the future)
+
+- ✅ Decision history (easy for you and an Agent to understand why decisions were made)
+
+- ✅ Reduced bugs and rework (easier to debug and understand why things are the way they are)
+
+<Callout type="info">
+
+  **Where Your Documentation Lives** 📁
+
+  - ✅ **Fumadocs already configured** - Your codebase includes a full documentation site powered by Fumadocs
+
+  - ✅ **Runs on port 4000** - When you run `bun run dev`, your docs site will be available at `http://localhost:4000`
+
+  - ✅ **Ready to use** - Navigate to the "Project Documentation" section and start filling in your docs
+
+  - 📂 **Location**: `content/docs/product-docs/` in your codebase
+
+  <Cards>
+
+    <Card
+
+      title="Project Documentation"
+
+      description="All your project documentation will live in your codebase. It's already set up and ready to use."
+
+      href="/docs/product-docs"
+
+    />
+
+  </Cards>
+
+</Callout>
+
+The fastest way to create MVP documentation is to work with an AI agent across **6 focused conversations**. Each conversation targets a specific aspect of your product.
+
+<Warning>
+
+  **Important:** Before starting the documentation conversations, you must:
+
+  
+
+  1. **Clone the codebase** - Follow the [Project Setup guide](/docs/setup/1-ramp-up) to clone and set up the project locally
+
+  2. **Open the project in Cursor** - Navigate to your cloned project directory in Cursor IDE
+
+  3. **Start conversations from within the codebase** - This ensures your AI agent has full context of your tech stack, README.md, and project structure
+
+  
+
+  **Note on Documentation Paths:**
+
+  - Prompts reference `content/docs/product-docs/` (already exists in your codebase)
+
+  
+
+  All documentation prompts reference files like `README.md` that exist in your cloned codebase. Without cloning first, the AI agent won't have the necessary context to provide accurate documentation.
+
+</Warning>
+
+### Prerequisites
+
+Before starting, ensure you have:
+
+<Cards>
+
+  <Card
+
+    title="Cursor IDE installed + Pro Subscription"
+
+    href="https://www.cursor.so/"
+
+    description="Ensure you have Cursor IDE and a Pro Subscription so you can use the premium models like GPT-5-High."
+
+  />
+
+  <Card
+
+    title="A Validated Product Idea"
+
+    description="You should an idea that has been validated through our recommended Idea Validation process."
+
+  />
+
+</Cards>
+
+<Cards>
+
+  <Card
+
+    title="Project Setup"
+
+    href="/docs/setup/1-ramp-up"
+
+    description="Clone and set up the project (TanStack Start, Convex, BetterAuth, Polar.sh)"
+
+  />
+
+</Cards>
+
+<Note>
+
+  If you prefer to use Claude Code or another AI agent, feel free to do so. We recommend using Cursor and the GPT-5-High model for the best experience.
+
+</Note>
+
+### The 6-step Documentation Framework
+
+We'll follow a framework to help you document your product and all the important decisions you'll make before building, so you and your AI assistants can execute on your idea.
+
+<Cards>
+
+  <Card title="1. Product Idea, Vision & Strategy" description="Define your idea, target audience, and core features" href="/docs/product-docs/idea" />
+
+  <Card title="2. Marketing Strategy" description="Get Hormozi's perspective and document marketing strategies for your specific idea" />
+
+  <Card title="3. Technical Architecture" description="Design system architecture and tech stack decisions" href="/docs/product-docs/architecture" />
+
+  <Card title="4. Cost Estimation" description="Calculate Tech Stack related operational costs (API calls, Database, etc.)" href="/docs/product-docs/cost-estimation" />
+
+  <Card title="5. Database Design" description="Plan data models, relationships, and schema" href="/docs/product-docs/database-design" />
+
+  <Card title="6. UI/UX + User Flows" description="Map user journeys and interaction patterns" href="/docs/product-docs/user-flows" />
+
+</Cards>
+
+---
+
+## 1. Product Idea, Vision & Strategy
+
+**Goal**: Define your product vision, target audience, core features, success metrics, competitive landscape, implementation planning, and any external dependencies you'll need.
+
+**Duration**: `20-25 minutes`
+
+**Model**: `gpt-5-high`
+
+<Note>
+
+  **Start this conversation from within your cloned codebase** so the AI agent has full context of your tech stack and project structure.
+
+</Note>
+
+Open a new Agent tab in Cursor (from within your cloned project directory) and use this prompt:
+
+<Note>
+
+  **Documentation Paths:** The prompts below reference `content/docs/product-docs/` paths which are already set up in your codebase.
+
+</Note>
+
+```markdown
+
+I'm building an MVP and need help documenting my product vision and strategy. 
+
+**IMPORTANT**: Before we start, please:
+
+1. **Check the README.md file** in this codebase to understand my current tech stack
+
+2. **Perform real-time web research** on current pricing, features, and capabilities of my tech stack components
+
+3. **Read the existing Project Documentation → Idea page** (content/docs/product-docs/idea.mdx) to understand what's already documented
+
+4. **Note**: I should have already completed the Target Market & ICP deep dive from the [Idea Validation guide](/docs/company-building/idea-validation). This documentation will expand and formalize that analysis.
+
+**My Product Idea**: [Describe your product idea in 2-3 sentences]
+
+**Current Understanding**: [What you know about your target market, competitors, etc.]
+
+Please help me create documentation for the "Idea" page in my Project Documentation. I want to document:
+
+1. **Problem Statement** - What problem am I solving?
+
+2. **Solution Overview** - How does my product solve it?
+
+3. **Target Audience & ICP Deep Dive** - Deeply identify and understand your target market:
+
+   - **Demographics** - Age, location, occupation, income level, education
+
+   - **Psychographics** - Behaviors, motivations, pain points, goals, fears
+
+   - **Behavioral Patterns** - How they currently solve this problem, what tools they use, daily routines
+
+   - **Pain Intensity** - How urgent is this problem? How much time/money does it cost them?
+
+   - **Willingness to Pay** - Have they paid for similar solutions? What's their budget?
+
+   - **Platform Identification** - Where do your target users spend most of their time online? (LinkedIn, X/Twitter, Instagram, TikTok, Reddit, Discord/Slack, Facebook Groups, YouTube, industry-specific forums, etc.)
+
+   - **Distribution Strategy** - Based on platform identification, how will you reach your first 10-100 users? What's your clear plan for finding and engaging with them?
+
+   - **Validation Evidence** - Have you spoken to potential customers? Did someone say "I will pay for this" or show clear payment intent? Document your validation conversations and commitments.
+
+   - **Competitor Analysis** (if cloning an existing app) - Analyze competitor ad strategies, distribution channels, content strategies, and community presence using tools like Rival Sonar (https://www.rival-sonar.com/blog/exploit-gaps-in-competitor-ad-strategy)
+
+4. **B2C vs B2B Classification** - Determine if this should be a B2C (Business-to-Consumer) or B2B (Business-to-Business) app:
+
+   - Analyze the target audience, use case, and product characteristics
+
+   - Consider factors like: individual vs team usage, pricing models, sales cycles, support requirements
+
+   - Recommend the appropriate model and justify the decision
+
+   - **Stack Requirements**: If B2B, identify what needs to be enabled/configured in the current stack:
+
+     - Organization/team management features
+
+     - Multi-tenant architecture considerations
+
+     - Admin/dashboard capabilities for team management
+
+     - SSO (Single Sign-On) or enterprise authentication options
+
+     - Billing/subscription management for teams vs individuals
+
+     - Any additional Convex schema, BetterAuth configurations, or Polar.sh features needed
+
+   - **Cost Implications**: Research and document:
+
+     - Additional costs for B2B features (e.g., SSO pricing in BetterAuth, team management costs)
+
+     - Scaling costs as teams/organizations grow
+
+     - Any premium tier requirements for B2B functionality
+
+     - Comparison of B2C vs B2B pricing tiers for all relevant services
+
+5. **Core Features** - What features do I need for MVP?
+
+6. **Competitive Analysis** - How am I different?
+
+7. **Expected Scale** - How many users do I expect to have?
+
+8. **3rd-party libraries/providers/APIs** - What external libraries/providers/APIs do I need to use (other than what my current tech stack provides)?
+
+9. **Pricing Model Decision** - Subscription vs One-time vs Hybrid (justify with web research and product type)
+
+10. **Implementation Planning** - Development phases, timeline estimation, resource requirements, risk assessment, success metrics, launch strategy
+
+Use this decision framework when selecting the pricing model:
+
+- Recurring Subscriptions
+
+  - Use when you provide ongoing value
+
+  - Examples: SaaS tools used regularly, monitoring services, continuous access platforms
+
+  - Benefits: Predictable revenue, higher LTV, easier to scale
+
+- One-Time Payments
+
+  - Use when value is delivered once
+
+  - Examples: Digital downloads, one-off transformations, limited-time access
+
+  - Benefits: Simpler to manage, no recurring obligations, clear value proposition
+
+- Hybrid Models
+
+  - Combine both payment types
+
+  - Examples: Setup fee + monthly access, one-time purchase + optional subscription support
+
+  - Benefits: Maximizes revenue opportunities, caters to preferences, flexible strategy
+
+- Product Type Considerations
+
+  - Transformation Products → bias to one-time (e.g., fitness apps, course platforms)
+
+  - Utility Products → bias to subscription (e.g., budget trackers, productivity tools)
+
+- Currency & Pricing Psychology
+
+  - Align currencies with target demographics
+
+  - Use psychological pricing (e.g., $29 vs $30)
+
+**Output**: A clear recommendation with rationale and sources. Also note downstream impacts on database schema, pricing page UX, and payments provider configuration.
+
+Make sure to include the following sections in Project Documentation → Idea (content/docs/product-docs/idea.mdx):
+
+**Target Audience & ICP Deep Dive**
+
+- Demographics: [Detailed breakdown]
+
+- Psychographics: [Behaviors, motivations, pain points]
+
+- Behavioral Patterns: [How they currently solve the problem]
+
+- Pain Intensity: [Urgency and cost of the problem]
+
+- Willingness to Pay: [Payment history and budget]
+
+- Platform Identification: [Where they spend time online - specific platforms]
+
+- Distribution Strategy: [How to reach first 10-100 users on identified platforms]
+
+- Validation Evidence: [Customer conversations and payment commitments]
+
+- Competitor Analysis: [If cloning, competitor ad/distribution/content analysis]
+
+**B2C vs B2B Classification**
+
+- Classification: [B2C | B2B | Hybrid]
+
+- Rationale: [2-4 bullets explaining why this classification fits the product]
+
+- Stack Requirements: [What needs to be enabled/configured in the current stack, if B2B]
+
+- Cost Implications: [Additional costs, premium tiers, scaling costs for B2B features]
+
+- Schema Impact: [Notes on how this affects database design - organizations/teams tables, user-organization relationships, etc.]
+
+**Pricing Model Decision**
+
+- Decision: [Subscription | One-time | Hybrid]
+
+- Rationale: [2-4 bullets citing product type and web research]
+
+- Product Type: [Transformation | Utility | Mixed]
+
+- Currency & Pricing: [Primary currency and psychological price points]
+
+- Database Impact: [Keep/remove: subscriptions tables, one-time payments tables, and invoice fields?]
+
+- Provider/Webhooks: [Which flows are needed and why]
+
+These sections must be present in content/docs/product-docs/idea.mdx so downstream docs (architecture, database, payments) can reference them.
+
+**CRITICAL**: When we're done, I need you to **replace the entire content** of the Project Documentation → Idea page (content/docs/product-docs/idea.mdx) with our final documentation, not just provide text to copy.
+
+Before you do that, please ask me clarifying questions and help me think through each area thoroughly. Use real-time web research to ensure accuracy of current market conditions, competitor pricing, and tech stack capabilities.
+
+```
+
+---
+
+## 2. Marketing Strategy
+
+**Goal**: Get Hormozi's expert perspective and document marketing strategies, positioning, and go-to-market plan for your specific product idea.
+
+**Duration**: `10-15 minutes` (5-10 minutes NotebookLM + 5-10 minutes documentation)
+
+### Step 2a: Get Hormozi's Perspective (NotebookLM)
+
+First, get expert feedback from Alex Hormozi's knowledge base using Google NotebookLM. This helps identify gaps in your idea and discover marketing strategies that work best for your specific product.
+
+<Cards>
+
+  <Card
+
+    title="Hormozi NotebookLM"
+
+    description="Public NotebookLM trained on all of Alex Hormozi's top resources - books, playbooks, videos, and podcasts"
+
+    href="https://notebooklm.google.com/notebook/f99eb1ba-787f-4e00-95ac-d2d523db7395"
+
+  />
+
+</Cards>
+
+**Steps**:
+
+1. **Open the Hormozi NotebookLM** - Click the link above to access the public notebook trained on Hormozi's knowledge base
+
+2. **Copy your Idea documentation** - Open `content/docs/product-docs/idea.mdx` from your project and copy the entire content
+
+3. **Upload to NotebookLM** - Upload the markdown file or paste the content directly into the notebook
+
+4. **Ask Hormozi** - Use this prompt to get feedback:
+
+```markdown
+
+I'm building this product idea. Please review it as if you're Alex Hormozi and provide:
+
+1. **Gap Analysis** - What's missing from this idea? What questions haven't been answered?
+
+2. **Marketing Strategy** - Based on this specific product and target audience, what marketing strategies would work best?
+
+3. **Offer Refinement** - How can I make the offer more compelling?
+
+4. **Positioning** - How should this product be positioned in the market?
+
+5. **Go-to-Market** - What's the best way to launch and scale this?
+
+Ask me clarifying questions and help me think through my specific product/company thoroughly.
+
+Be specific and actionable with your advice. Reference frameworks from your books and playbooks where relevant, and explain why they're relevant to my specific product/company.
+
+```
+
+5. **Save the response** - Copy the NotebookLM response - you'll use it in the next step
+
+### Step 2b: Document Marketing Strategy
+
+**Goal**: Document marketing strategies, positioning, and go-to-market plan based on Hormozi's perspective and your product idea.
+
+**Duration**: `5-10 minutes`
+
+**Model**: `claude-sonnet-4.5`
+
+<Note>
+
+  **Start this conversation from within your cloned codebase** so the AI agent can access your README.md and project structure.
+
+</Note>
+
+Open a new Agent tab in Cursor (from within your cloned project directory) and use this prompt:
+
+```markdown
+
+Based on my product idea (See the 'Idea' page in my Project Documentation - content/docs/product-docs/idea.mdx) and Hormozi's feedback from NotebookLM, I need help documenting a marketing strategy.
+
+**IMPORTANT**: Before we start, please:
+
+1. **Check the README.md file** in this codebase to understand my current tech stack
+
+2. **Read the existing Project Documentation → Idea page** (content/docs/product-docs/idea.mdx) to understand the product vision, target audience, pricing model, and B2C/B2B classification
+
+3. **I'll paste Hormozi's NotebookLM response below** - use it as expert guidance for marketing strategies
+
+**Hormozi's NotebookLM Response**:
+
+[Paste the full response from NotebookLM here]
+
+Please help me create marketing strategy documentation. I want to document:
+
+1. **Positioning Strategy** - How to position this product in the market based on Hormozi's feedback
+
+2. **Target Audience Refinement** - Any adjustments to target audience based on gaps identified
+
+3. **Marketing Channels** - Which channels would work best for this specific product (content marketing, paid ads, partnerships, etc.)
+
+4. **Content Strategy** - What content should be created and where it should be distributed
+
+5. **Go-to-Market Plan** - Step-by-step launch strategy
+
+6. **Offer Refinement** - How to make the offer more compelling based on Hormozi's recommendations
+
+7. **Pricing Strategy** - Refine pricing based on positioning and offer improvements
+
+8. **Conversion Funnel** - How to move prospects through awareness → interest → decision → action
+
+9. **Marketing Metrics** - What KPIs to track for marketing success
+
+10. **Scaling Strategy** - How to scale marketing efforts as the product grows
+
+**CRITICAL**: When we're done, I need you to **create a new file** at `content/docs/product-docs/marketing-strategy.mdx` with our final marketing strategy documentation, not just provide text to copy.
+
+```
+
+---
+
+## 3. Technical Architecture
+
+Now that we have our core idea thoroughly fleshed out, we can start designing the architecture and ironing out all the technical details.
+
+**Goal**: Design system architecture, use specific features of your chosen tech stack, and understand how any 3rd party libraries/providers/APIs will fit into your system.
+
+**Duration**: `20-25 minutes`
+
+**Model**: `gpt-5-high`
+
+<Note>
+
+  **Start this conversation from within your cloned codebase** so the AI agent can access your README.md and project structure.
+
+</Note>
+
+Open a new Agent tab in Cursor (from within your cloned project directory) and use this prompt:
+
+```markdown
+
+Based on my product idea and vision (See the 'Idea' page in my Project Documentation - content/docs/product-docs/idea.mdx), I now need help designing and documenting the technical architecture.
+
+**IMPORTANT**: Before we start, please:
+
+1. **Check the README.md file** in this codebase to understand my current tech stack
+
+2. **Read the existing Project Documentation → Idea page** (content/docs/product-docs/idea.mdx) to understand the product vision and pricing model decision
+
+3. **Perform real-time web research** on current pricing, features, and capabilities of my tech stack components
+
+4. **Research current best practices** for my specific tech stack combination
+
+Please help me design a technical architecture, using mermaid diagrams. I want to document:
+
+1. **System Overview** - High-level architecture diagram
+
+2. **Tech Stack Decisions** - Frontend, backend, database, etc. (based on my current stack - see this codebase's README.md file for more details)
+
+3. **Tech Stack Specific Features (see this codebase's README.md file for more details)** - Serverless functions, cron jobs, real-time features, etc.
+
+4. **Payments Architecture** - Based on the chosen pricing model (subscription vs one-time vs hybrid), outline provider flows, webhooks, and data sync responsibilities
+
+   - **Free Trials**: Ask the developer if they need free trials for their product (Polar.sh supports trial periods if needed)
+
+5. **Data Flow** - How data moves through the system
+
+6. **API Design** - Key endpoints and data structures
+
+7. **Security Considerations** - Authentication, authorization, data protection
+
+8. **Performance & Scalability** - How to handle growth
+
+9. **Infrastructure** - Hosting, deployment, monitoring
+
+**CRITICAL**: When we're done, I need you to **replace the entire content** of the Project Documentation → Architecture page (content/docs/product-docs/architecture.mdx) with our final documentation, not just provide text to copy.
+
+Before you do that, please ask me clarifying questions and help me think through each area thoroughly. Use real-time web research to ensure accuracy of current tech stack capabilities, security considerations, and performance & scalability best practices.
+
+Use real-time web research (if you need to) to ensure accuracy of current tech stack capabilities, pricing models, and architectural best practices. Ask clarifying questions about my technical requirements and constraints.
+
+```
+
+## 4. Cost Estimation
+
+**Goal**: Calculate tech stack operational costs, profit margins, and revenue expectations at different user scales.
+
+**Duration**: `15-20 minutes`
+
+**Model**: `gpt-5-high`
+
+<Note>
+
+  **Start this conversation from within your cloned codebase** so the AI agent can access your README.md and project structure.
+
+</Note>
+
+Open a new Agent tab in Cursor (from within your cloned project directory) and use this prompt:
+
+```markdown
+
+Based on my product idea and technical architecture (See the 'Idea' and 'Architecture' pages in my Project Documentation), I now need help calculating operational costs and revenue projections.
+
+**IMPORTANT**: Before we start, please:
+
+1. **Check the README.md file** in this codebase to understand my current tech stack
+
+2. **Read the existing Project Documentation → Idea page** (content/docs/product-docs/idea.mdx) to understand the product vision, pricing model, and expected scale
+
+3. **Read the existing Project Documentation → Architecture page** (content/docs/product-docs/architecture.mdx) to understand the technical stack and infrastructure choices
+
+5. **Perform real-time web research** on current pricing for ALL components of my tech stack
+
+Please help me create cost estimation documentation. I want to document:
+
+1. **Tech Stack Operational Costs** - Monthly costs for hosting, databases, APIs, third-party services
+
+2. **Revenue Projections** - Based on pricing model and expected user growth
+
+3. **Profit Margins** - At different user scales:
+
+   - 10 monthly active users
+
+   - 100 monthly active users  
+
+   - 1,000 monthly active users
+
+   - 10,000 monthly active users
+
+4. **Break-even Analysis** - When the product becomes profitable
+
+5. **Scaling Costs** - How costs increase with user growth
+
+6. **Cost Optimization Strategies** - Ways to reduce operational costs
+
+**My Product**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for the product description
+
+**Tech Stack**: See the existing Project Documentation → Architecture page (content/docs/product-docs/architecture.mdx) for tech stack details
+
+**Pricing Model**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for pricing model decision
+
+**CRITICAL**: When we're done, I need you to **replace the entire content** of the Project Documentation → Cost Estimation page (content/docs/product-docs/cost-estimation.mdx) with our final documentation, not just provide text to copy.
+
+Before you do that, please ask me clarifying questions and help me think through each area thoroughly. Use real-time web research to ensure accuracy of current pricing for all tech stack components, hosting costs, third-party service fees, and market rates.
+
+```
+
+---
+
+## 5. Database Design
+
+**Goal**: Plan data models, relationships, and database schema
+
+**Duration**: `20-25 minutes`
+
+**Model**: `gpt-5-high`
+
+<Note>
+
+  **Start this conversation from within your cloned codebase** so the AI agent can access your README.md and project structure.
+
+</Note>
+
+Open a new Agent tab in Cursor (from within your cloned project directory) and use this prompt:
+
+Have your **Product Vision**, **Architecture**, and **User Flows** ready
+
+```markdown
+
+I've defined my product vision and architecture. Now I need help designing the database schema and data models.
+
+**IMPORTANT**: Before we start, please:
+
+1. **Check the README.md file** in this codebase to understand my current tech stack
+
+2. **Read the existing Project Documentation → Idea page** (content/docs/product-docs/idea.mdx) to understand the product vision, core features, B2C/B2B classification, and pricing model decision
+
+3. **Read the existing Project Documentation → Architecture page** (content/docs/product-docs/architecture.mdx) to understand the technical context and database choice
+
+4. **Read the existing Project Documentation → User Flows page** (content/docs/product-docs/user-flows.mdx) to understand user interactions and data requirements
+
+6. **Perform real-time web research** on current pricing, features, and capabilities of my database technology
+
+7. **Research current best practices** for my specific database technology
+
+**My Product**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for the product description
+
+**B2C/B2B Classification**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for B2C vs B2B classification and schema impact notes
+
+**Core Features**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for core features list
+
+**User Flows**: See the existing Project Documentation → User Flows page (content/docs/product-docs/user-flows.mdx) for user interactions
+
+**Tech Stack**: See the existing Project Documentation → Architecture page (content/docs/product-docs/architecture.mdx) for database choice
+
+Please help me create database documentation. I want to document:
+
+1. **Data Models** - Core entities and their properties
+
+2. **Relationships** - How entities connect to each other
+
+3. **Schema Design** - Tables, fields, types, constraints
+
+4. **B2C/B2B Schema Considerations** - Based on the B2C/B2B classification from the Idea page:
+
+   - If B2B: Include organization/team tables, user-organization relationships, role-based access control structures
+
+   - If B2C: Focus on individual user data models and personal account structures
+
+   - If Hybrid: Design flexible schema that supports both individual and team usage
+
+   - Reference the "Schema Impact" notes from the B2C/B2B Classification section
+
+5. **Data Flow** - How data is created, updated, deleted
+
+6. **Indexing Strategy** - Performance optimization
+
+7. **Data Validation** - Input validation and business rules
+
+8. **Migration Strategy** - How to evolve the schema over time
+
+9. **Backup & Recovery** - Data protection strategies
+
+10. **Payments Schema Plan** - Reflect the chosen pricing model:
+
+   - If one-time only → remove subscription tables and `subscription_id` from invoices
+
+   - If subscription only → remove one-time payment tables and fields
+
+   - If hybrid → keep both sets and define clear relations and invariants
+
+   - **Free Trials**: Ask the developer if they need free trials (Polar.sh helps with this if needed)
+
+**CRITICAL**: When we're done, I need you to **replace the entire content** of the Project Documentation → Database Design page (content/docs/product-docs/database-design.mdx) with our final documentation, not just provide text to copy.
+
+Use real-time web research to ensure accuracy of current database capabilities, pricing models, and performance best practices. Ask clarifying questions about data requirements, relationships, and performance needs.
+
+Before you do that, please ask me clarifying questions and help me think through what data models, relationships, and schema are needed for my product.
+
+```
+
+---
+
+## 6. UI/UX + User Flows
+
+**Goal**: Map user journeys and design interaction patterns
+
+**Duration**: `15-20 minutes`
+
+**Model**: `gpt-5-high`
+
+<Note>
+
+  **Start this conversation from within your cloned codebase** so the AI agent can access your README.md and project structure.
+
+</Note>
+
+Open a new Agent tab in Cursor (from within your cloned project directory) and use this prompt:
+
+Have your **Product Vision** and **Architecture** ready
+
+```markdown
+
+I've defined my product vision and technical architecture. Now I need help designing the user experience and interaction flows.
+
+**IMPORTANT**: Before we start, please:
+
+1. **Check the README.md file** in this codebase to understand my current tech stack
+
+2. **Read the existing Project Documentation → Idea page** (content/docs/product-docs/idea.mdx) to understand the product vision, target audience, and core features
+
+3. **Read the existing Project Documentation → Architecture page** (content/docs/product-docs/architecture.mdx) to understand the technical context and payments architecture
+
+5. **Research current UX best practices** for my specific tech stack and industry
+
+6. **Research intuitive UI components** that would be perfect for my specific product type and use case
+
+7. **Study dashboard design patterns** for similar products in my industry
+
+**My Product**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for the product description
+
+**Target Users**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for target audience details
+
+**Core Features**: See the existing Project Documentation → Idea page (content/docs/product-docs/idea.mdx) for core features list
+
+**Technical Stack**: See the existing Project Documentation → Architecture page (content/docs/product-docs/architecture.mdx) for technical stack details
+
+Please help me create user flow documentation. I want to document:
+
+1. **Primary User Flows** - Main user journeys (onboarding, core feature usage)
+
+2. **Secondary Flows** - Supporting interactions (settings, notifications, etc.)
+
+3. **Error & Edge Cases** - What happens when things go wrong
+
+4. **Mobile vs Desktop** - Responsive behavior differences
+
+5. **Conversion Funnel** - Where users might drop off
+
+6. **User Personas & Flows** - Different user types and their paths
+
+7. **Accessibility Considerations** - Ensuring inclusive design
+
+8. **Intuitive UI Components** - Specific components that would make the app feel super intuitive
+
+9. **Dashboard Design** - Core logic pages and dashboard layout for maximum usability
+
+10. **Wireframes** - Visual mockups of key screens and user flows
+
+11. **Onboarding Flow** - Whether onboarding is needed and how to make it seamless and intuitive
+
+**SPECIFIC REQUIREMENTS**:
+
+- **Research and recommend** specific UI components (tables, charts, forms, navigation, etc.) that would be perfect for my product type
+
+- **Design wireframes** using ASCII art or text-based layouts for key screens
+
+- **Focus on dashboard design** - how should the main dashboard be organized for maximum intuitiveness?
+
+- **Component recommendations** - what specific components would make my core features feel natural and easy to use?
+
+- **Interaction patterns** - what interaction patterns work best for my type of product?
+
+- **Onboarding assessment** - determine if onboarding is needed based on product complexity and user familiarity
+
+- **Onboarding flow design** - if needed, design a seamless onboarding experience that guides users to their first success
+
+- **Onboarding optimizations** - suggest specific optimizations and strategies for onboarding that best suit this product idea to really lower friction. Consider:
+
+  - Progressive disclosure (what to show vs. hide initially)
+
+  - Default states and smart defaults
+
+  - Quick wins and time-to-value
+
+  - Guided tours vs. contextual help
+
+  - Social proof and examples
+
+  - Skip options for experienced users
+
+  - Mobile-first vs. desktop-first onboarding patterns
+
+  - Product-specific friction points and how to eliminate them
+
+**CRITICAL**: When we're done, I need you to **replace the entire content** of the Project Documentation → User Flows page (content/docs/product-docs/user-flows.mdx) with our final documentation, not just provide text to copy.
+
+Create Mermaid diagrams for key flows, wireframes for important screens, and ask clarifying questions about user behavior patterns. Use real-time web research to find the most intuitive components and design patterns for my specific product type.
+
+Before you do that, please ask me clarifying questions and help me think through each area thoroughly. Use real-time web research to ensure accuracy of current UX best practices, product type, and user behavior patterns.
+
+```
+
+## Next Steps
+
+After completing all 6 conversations:
+
+1. **Review all documentation** - Ensure consistency across sections
+
+2. **Share with stakeholders** - Get feedback on your plan (from your team, or a client - if you have one)
+
+<Note>
+
+  Your documentation site is already running on `http://localhost:4000` when you run `bun run dev`. You can share this with stakeholders or deploy it to Vercel.
+
+</Note>
+
+3. **Start development** - You're now ready to build a landing page, start enabling core features (Authentication, Payments, etc.) and actually start building your core product!
+
+4. **Update regularly** - Keep documentation current as you build
+
+<Callout type="info">
+
+  **Remember:** 
+
+  All documentation lives in `content/docs/product-docs/` and is viewable at `http://localhost:4000` when you run `bun run dev`.
+
+</Callout>
+
+You're now ready to start building your product!
+

@@ -1,0 +1,76 @@
+---
+alwaysApply: true
+---
+# Yugen Project Conventions
+
+## Package Manager: Bun
+
+**ALWAYS use `bun` instead of `npm`, `npx`, `yarn`, or `pnpm`.**
+
+| Instead of | Use |
+|------------|-----|
+| `npm install` | `bun install` |
+| `npm run <script>` | `bun run <script>` |
+| `npx <command>` | `bunx <command>` |
+| `npm add <package>` | `bun add <package>` |
+| `npm remove <package>` | `bun remove <package>` |
+
+### Examples
+```bash
+# Install dependencies
+bun install
+
+# Run dev server
+bun run dev
+
+# Run type checking
+bun run typecheck
+
+# Execute a CLI tool
+bunx convex dev
+bunx @better-auth/cli generate -y
+
+# Add a package
+bun add zod
+
+# Add a dev dependency
+bun add -d typescript
+```
+
+## Deployment
+
+**After pushing to main branch or merging a PR, run deployment:**
+
+```bash
+bun run deploy
+```
+
+This deploys the application to production. Always run this after:
+- Pushing commits directly to `main`
+- Merging a pull request to `main`
+- Any production-ready changes land on `main`
+
+### Deployment Checklist
+1. Ensure all tests pass
+2. Ensure `bunx convex typecheck` passes
+3. Push/merge to main
+4. Run `bun run deploy`
+
+## Convex Commands
+
+All Convex CLI commands should use `bunx`:
+
+```bash
+# Development
+bunx convex dev
+
+# Type checking
+bunx convex typecheck
+
+# Deploy Convex functions
+bunx convex deploy
+
+# Generate schema
+cd packages/backend/convex/betterAuth
+bunx @better-auth/cli generate -y --output schema.ts
+```

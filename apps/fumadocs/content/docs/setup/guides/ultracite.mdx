@@ -1,0 +1,158 @@
+---
+title: 'Ultracite'
+description: AI-ready formatter and linter configuration
+icon: Sparkles
+---
+
+<Note>
+  Ultracite is a zero-config Biome preset designed for both humans and LLMs. It's 35x faster than ESLint and Prettier combined.
+</Note>
+
+Ultracite provides AI-ready formatting and linting rules through Biome. This boilerplate comes pre-configured with Ultracite presets for core JavaScript/TypeScript and React code.
+
+## What is Ultracite?
+
+Ultracite is a curated set of Biome presets that:
+- Enforces consistent code style across your codebase
+- Provides rules optimized for both human readability and LLM understanding
+- Runs 35x faster than traditional ESLint + Prettier setups
+- Works seamlessly with AI coding assistants
+
+## Configuration
+
+Ultracite is configured in `biome.json` at the root of your project:
+
+```json
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "**",
+      "!**/.next",
+      "!**/dist",
+      "!**/.turbo",
+      "!**/dev-dist",
+      "!**/.zed",
+      "!**/.vscode",
+      "!**/routeTree.gen.ts",
+      "!**/src-tauri",
+      "!**/.nuxt",
+      "!bts.jsonc",
+      "!**/.expo",
+      "!**/.wrangler",
+      "!**/.alchemy",
+      "!**/.svelte-kit",
+      "!**/wrangler.jsonc",
+      "!**/.source"
+    ]
+  },
+  "extends": [
+    "ultracite/core",
+    "ultracite/react"
+  ]
+}
+```
+
+The configuration uses two Ultracite presets:
+- **`ultracite/core`**: Core JavaScript/TypeScript rules
+- **`ultracite/react`**: React-specific rules and best practices
+
+## Usage
+
+### Run Formatting and Linting
+
+Format and lint your entire codebase:
+
+```bash
+bun run check
+```
+
+This command:
+- Checks all files for linting issues
+- Auto-fixes issues where possible
+- Formats code according to Ultracite rules
+
+### Editor Integration
+
+Most modern editors have Biome support via extensions:
+
+- **VS Code**: Install the [Biome extension](https://marketplace.visualstudio.com/items?itemName=biomejs.biome)
+- **Cursor**: Biome is built-in
+- **Zed**: Biome support via extensions
+
+Once installed, your editor will:
+- Show linting errors inline
+- Auto-format on save (if configured)
+- Provide quick fixes for common issues
+
+### CI/CD Integration
+
+Add a check step to your CI pipeline:
+
+```yaml
+# Example GitHub Actions
+- name: Check code formatting
+  run: bun run check
+```
+
+This ensures all code follows Ultracite rules before merging.
+
+## What Rules Are Enabled?
+
+Ultracite includes hundreds of rules covering:
+
+- **Code Quality**: Enforces best practices and avoids common pitfalls
+- **Accessibility**: Ensures your React components are accessible
+- **Performance**: Prevents performance anti-patterns
+- **Security**: Catches potential security issues
+- **React Best Practices**: Follows React 19+ conventions
+
+Key rules include:
+- No `any` types
+- Proper React hooks usage
+- Accessible components
+- Consistent code style
+- Modern JavaScript patterns
+
+## Customization
+
+While Ultracite works great out of the box, you can extend or override rules in `biome.json`:
+
+```json
+{
+  "extends": [
+    "ultracite/core",
+    "ultracite/react"
+  ],
+  "linter": {
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off"  // Override specific rule
+      }
+    }
+  }
+}
+```
+
+## Benefits for AI Assistants
+
+Ultracite's rules are designed to be:
+- **LLM-friendly**: Consistent patterns that AI assistants can learn from
+- **Predictable**: Code structure that's easy for AI to understand
+- **Documented**: Rules that provide context for AI code generation
+
+When AI assistants read your codebase, they see:
+- Consistent formatting patterns
+- Clear code structure
+- Well-defined conventions
+
+This helps AI assistants generate code that matches your project's style automatically.
+
+## Resources
+
+- [Ultracite Website](https://www.ultracite.ai)
+- [Biome Documentation](https://biomejs.dev)
+- [Ultracite Presets](https://github.com/ultracite/ultracite)
+

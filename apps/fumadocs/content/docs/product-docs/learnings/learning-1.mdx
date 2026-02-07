@@ -1,0 +1,296 @@
+---
+title      : 'Example: Queries vs Mutations'
+description: Understanding when to use queries vs mutations in Convex and how they handle real-time updates
+---
+
+<Note>
+This learning was documented on 10th October 2025, while implementing the notification system (e.g. see Feature 1). I was struggling to understand when to use queries vs mutations and how Convex handles real-time updates automatically.
+</Note>
+
+## The Problem I Encountered
+
+While building the notification system, I was confused about when to use `query` vs `mutation` in Convex. I kept getting errors and wasn't sure why some functions updated the UI automatically while others didn't.
+
+## Key Learning: Queries vs Mutations
+
+### What Are Queries?
+Queries are **read-only** functions that fetch data from your database. They automatically subscribe to changes and update your React components in real-time.
+
+### What Are Mutations?
+Mutations are **write-only** functions that modify data in your database. They don't return data directly, but they trigger queries to re-run automatically.
+
+## Visual Understanding
+
+<Mermaid
+  chart="
+graph TD
+    A[React Component] --> B[useQuery]
+    A --> C[useMutation]
+    
+    B --> D[Convex Query Function]
+    C --> E[Convex Mutation Function]
+    
+    D --> F[Database Read]
+    E --> G[Database Write]
+    
+    G --> H[Triggers Query Re-run]
+    H --> D
+    
+    D --> I[Real-time Update]
+    I --> A
+    
+    style D fill:#1e3a8a
+    style E fill:#7c2d12
+    style F fill:#14532d
+    style G fill:#14532d
+"
+/>
+
+## Code Examples
+
+### ❌ Wrong Approach (What I Was Doing)
+
+```typescript
+// This doesn't work - trying to return data from a mutation
+export const createNotification = mutation({
+  args: {
+    title: v.string(),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("notifications", {
+      ...args,
+      isRead: false,
+      createdAt: Date.now()
+    });
+    
+    // ❌ This won't work - mutations don't return data to React
+    return await ctx.db.get(id);
+  },
+});
+```
+
+### ✅ Correct Approach
+
+```typescript
+// Mutation: Only modifies data
+export const createNotification = mutation({
+  args: {
+    title: v.string(),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // ✅ Just insert the data
+    await ctx.db.insert("notifications", {
+      ...args,
+      isRead: false,
+      createdAt: Date.now()
+    });
+    // No return needed - queries will automatically update
+  },
+});
+
+// Query: Fetches and subscribes to data
+export const getNotifications = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    // ✅ This automatically updates React components
+    return await ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+  },
+});
+```
+
+## Real-time Update Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant R as React Component
+    participant Q as useQuery
+    participant CQ as Convex Query
+    participant CM as Convex Mutation
+    participant DB as Database
+    
+    R->>Q: useQuery(getNotifications)
+    Q->>CQ: Subscribe to notifications
+    CQ->>DB: Read notifications
+    DB-->>CQ: Return data
+    CQ-->>Q: Return data
+    Q-->>R: Update component
+    
+    Note over R: User clicks 'Mark as Read'
+    R->>CM: useMutation(markAsRead)
+    CM->>DB: Update notification
+    DB-->>CM: Success
+    
+    Note over DB: Database change detected
+    DB->>CQ: Trigger query re-run
+    CQ->>DB: Re-fetch notifications
+    DB-->>CQ: Return updated data
+    CQ-->>Q: Return updated data
+    Q-->>R: Update component automatically
+"
+/>
+
+## Key Patterns I Learned
+
+### 1. Always Use Queries for Data Fetching
+
+```typescript
+// ✅ Good: Query for fetching data
+export const getUserProfile = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
+  },
+});
+
+// ❌ Bad: Mutation for fetching data
+export const getUserProfile = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId); // Won't update React automatically
+  },
+});
+```
+
+### 2. Use Mutations for Data Changes
+
+```typescript
+// ✅ Good: Mutation for updating data
+export const updateUserProfile = mutation({
+  args: {
+    userId: v.id("users"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { name: args.name });
+  },
+});
+```
+
+### 3. Combine Both in React Components
+
+```tsx
+// ✅ Good: Use both query and mutation
+export function NotificationList() {
+  // Query: Automatically updates when data changes
+  const notifications = useQuery(api.notifications.getNotifications, { 
+    userId: "user_123" 
+  });
+  
+  // Mutation: Triggers query to re-run
+  const markAsRead = useMutation(api.notifications.markAsRead);
+  
+  const handleMarkAsRead = async (id: Id<"notifications">) => {
+    await markAsRead({ notificationId: id });
+    // Query automatically re-runs and updates the UI
+  };
+  
+  return (
+    <div>
+      {notifications?.map(notification => (
+        <div key={notification._id}>
+          {notification.title}
+          <button onClick={() => handleMarkAsRead(notification._id)}>
+            Mark as Read
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Common Mistakes to Avoid
+
+### 1. Returning Data from Mutations
+```typescript
+// ❌ Don't do this
+export const createUser = mutation({
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("users", args);
+    return await ctx.db.get(id); // This won't work as expected
+  },
+});
+```
+
+### 2. Using Queries for Data Modification
+```typescript
+// ❌ Don't do this
+export const updateUser = query({
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, args); // Queries should be read-only
+    return await ctx.db.get(args.id);
+  },
+});
+```
+
+### 3. Not Understanding Automatic Updates
+```typescript
+// ❌ Don't manually refetch after mutations
+const markAsRead = useMutation(api.notifications.markAsRead);
+const refetch = useQuery(api.notifications.getNotifications, { userId });
+
+const handleMarkAsRead = async (id) => {
+  await markAsRead({ notificationId: id });
+  // ❌ Don't do this - it's automatic!
+  await refetch();
+};
+```
+
+## Performance Considerations
+
+### Query Optimization
+```typescript
+// ✅ Use indexes for better performance
+export const getNotifications = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId)) // Use index
+      .filter((q) => q.eq(q.field("isRead"), false)) // Additional filtering
+      .take(10); // Limit results
+  },
+});
+```
+
+### Mutation Batching
+```typescript
+// ✅ Batch multiple operations in one mutation
+export const markMultipleAsRead = mutation({
+  args: { notificationIds: v.array(v.id("notifications")) },
+  handler: async (ctx, args) => {
+    // Batch all updates in one transaction
+    await Promise.all(
+      args.notificationIds.map(id => 
+        ctx.db.patch(id, { isRead: true })
+      )
+    );
+  },
+});
+```
+
+## When to Use Each
+
+| Use Case | Function Type | Reason |
+|----------|---------------|---------|
+| Fetch user data | Query | Need real-time updates |
+| Display notifications | Query | Want automatic UI updates |
+| Create new notification | Mutation | Modifying database |
+| Update user profile | Mutation | Changing data |
+| Delete item | Mutation | Removing data |
+| Search/filter data | Query | Reading data with filters |
+
+## Key Takeaways
+
+1. **Queries = Read + Real-time updates**
+2. **Mutations = Write + Trigger queries to re-run**
+3. **Never return data from mutations** - let queries handle fetching
+4. **Use indexes** for better query performance
+5. **Batch operations** in mutations when possible
+6. **Convex handles real-time updates automatically** - don't manually refetch

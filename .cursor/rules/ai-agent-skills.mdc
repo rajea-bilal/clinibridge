@@ -1,0 +1,73 @@
+---
+description: AI agent skills activation patterns and commitment mechanisms for reliable Claude Code behavior
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# AI Agent Skills Activation
+
+Guidelines for making AI agent skills activate reliably based on research showing 84% success vs 20% baseline.
+
+## The Problem
+
+Claude Code skills activate ~20% of the time by default with simple instruction hooks. Skills are passive suggestions that get ignored.
+
+## The Solution: Commitment Mechanisms
+
+Simple hooks are passive suggestions Claude ignores. The fix: make Claude explicitly evaluate EACH skill with YES/NO reasoning before proceeding.
+
+Once Claude writes "YES - need reactive state" → it's committed to using that skill.
+
+## Forced Evaluation Pattern (84% Success Rate)
+
+Use aggressive language ("MANDATORY", "WORTHLESS", "CRITICAL") and a 3-step process:
+
+### Step 1 - EVALUATE
+State YES/NO with reason for each skill
+
+### Step 2 - ACTIVATE  
+Use Skill() NOW
+
+### Step 3 - IMPLEMENT
+Only after activation
+
+```
+CRITICAL: The evaluation is WORTHLESS unless you ACTIVATE the skills.
+```
+
+## Key Insights
+
+- Multi-skill prompts killed simple hooks completely (0% success)
+- The forced eval hook never failed a category
+- Commitment mechanism creates accountability
+- Verbose output (listing all skills with YES/NO reasoning) is worth the trade-off
+
+## Hook Types Performance
+
+| Hook Type | Pass Rate | Notes |
+|-----------|-----------|-------|
+| No hook | ~0% | Baseline, skills ignored |
+| Simple instruction | 20% | Passive, easily ignored |
+| Forced eval | 84% | Most consistent |
+| LLM eval | 80% | Cheaper but can fail spectacularly |
+
+## When to Use
+
+- **Forced eval**: Most consistent, no external dependencies, verbose but reliable
+- **LLM eval**: Cheaper/faster, but can completely miss certain prompts
+- **Simple instruction**: Avoid - too unreliable
+
+## Implementation
+
+For complex tasks requiring multiple skills:
+
+1. List all available skills explicitly
+2. Require YES/NO evaluation with reasoning for each
+3. Mandate activation before implementation
+4. Use strong language to enforce compliance
+
+## References
+
+- [AGENTS.md](https://github.com/remorses/AGENTS.md) - Agent instruction files grouped by tech
+- [Claude Code Skills Activation Research](https://scottspence.com/posts/how-to-make-claude-code-skills-activate-reliably) - 200+ test study

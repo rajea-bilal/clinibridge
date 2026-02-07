@@ -1,0 +1,278 @@
+---
+title: Database Design
+description: Database design, Data Models, and Relationships
+icon: Database
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout title="Demo Only" type="info">
+  This is a dummy documentation page for demo purposes—there's no real product idea here. Content is placeholder and not based on an actual project.
+</Callout>
+
+Document your Convex database schema, tables, and relationships.
+
+<Warning>
+This is a template. Define your actual schema based on your product requirements!
+</Warning>
+
+## Schema Overview
+
+Convex uses a document-based NoSQL database with TypeScript-first schemas defined in `convex/schema.ts`.
+
+## Core Tables
+
+### Users Table
+
+```typescript
+users: defineTable({
+  betterAuthId: v.string(),      // BetterAuth user ID (unique)
+  email: v.string(),             // User email
+  name: v.optional(v.string()),  // Display name
+  imageUrl: v.optional(v.string()), // Profile picture
+  
+  // Subscription data
+  subscriptionStatus: v.optional(v.string()), // "active", "canceled", etc.
+  subscriptionTier: v.optional(v.string()),   // "free", "pro", "enterprise"
+  polarCustomerId: v.optional(v.string()),    // Polar customer ID
+  
+  // Metadata
+  createdAt: v.number(),         // Timestamp
+  lastActiveAt: v.optional(v.number()), // Last activity
+})
+.index("by_better_auth_id", ["betterAuthId"])
+.index("by_email", ["email"])
+.index("by_subscription_status", ["subscriptionStatus"])
+```
+
+**Relationships:**
+- One user has many [your resource]
+- User belongs to subscription via `polarCustomerId`
+
+### Subscriptions Table (Example)
+
+```typescript
+subscriptions: defineTable({
+  userId: v.id("users"),         // Reference to users table
+  polarSubscriptionId: v.string(), // Polar subscription ID
+  
+  status: v.string(),            // "active", "canceled", "trialing"
+  tier: v.string(),              // "starter", "pro", "enterprise"
+  
+  currentPeriodStart: v.number(), // Unix timestamp
+  currentPeriodEnd: v.number(),   // Unix timestamp
+  cancelAtPeriodEnd: v.boolean(),
+  
+  // Pricing
+  amount: v.number(),            // Amount in cents
+  currency: v.string(),          // "USD", etc.
+  interval: v.string(),          // "month", "year"
+  
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+.index("by_user", ["userId"])
+.index("by_polar_id", ["polarSubscriptionId"])
+.index("by_status", ["status"])
+```
+
+## Custom Tables
+
+Define your application-specific tables here.
+
+### Example: Projects Table
+
+```typescript
+projects: defineTable({
+  name: v.string(),
+  description: v.optional(v.string()),
+  ownerId: v.id("users"),        // Reference to owner
+  
+  // Project data
+  status: v.string(),            // "draft", "active", "archived"
+  settings: v.object({
+    // Define project-specific settings
+    isPublic: v.boolean(),
+    tags: v.array(v.string()),
+  }),
+  
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+.index("by_owner", ["ownerId"])
+.index("by_status", ["status"])
+```
+
+### Example: Tasks Table
+
+```typescript
+tasks: defineTable({
+  projectId: v.id("projects"),   // Reference to project
+  assigneeId: v.optional(v.id("users")), // Assigned user
+  
+  title: v.string(),
+  description: v.optional(v.string()),
+  status: v.string(),            // "todo", "in_progress", "done"
+  priority: v.string(),          // "low", "medium", "high"
+  
+  dueDate: v.optional(v.number()),
+  completedAt: v.optional(v.number()),
+  
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+.index("by_project", ["projectId"])
+.index("by_assignee", ["assigneeId"])
+.index("by_status", ["status"])
+.index("by_due_date", ["dueDate"])
+```
+
+## Indexes
+
+Indexes are crucial for query performance. Define indexes for:
+
+### Single-Field Indexes
+
+```typescript
+.index("by_field_name", ["fieldName"])
+```
+
+Use for queries like:
+```typescript
+ctx.db.query("tableName")
+  .withIndex("by_field_name", (q) => q.eq("fieldName", value))
+```
+
+### Compound Indexes
+
+```typescript
+.index("by_user_and_status", ["userId", "status"])
+```
+
+Use for queries like:
+```typescript
+ctx.db.query("tableName")
+  .withIndex("by_user_and_status", (q) => 
+    q.eq("userId", userId).eq("status", "active")
+  )
+```
+
+## Relationships
+
+Document how your tables relate to each other:
+
+```
+users (1) ──────< (many) projects
+  │
+  └────────< (many) subscriptions
+  
+projects (1) ────< (many) tasks
+  │
+  └───────< (many) project_members
+
+tasks (1) ───────> (1) assignee (user)
+```
+
+## Data Validation
+
+Convex validators ensure data integrity:
+
+```typescript
+// String with constraints
+email: v.string(), // Must be valid email format
+
+// Optional fields
+middleName: v.optional(v.string()),
+
+// Enums using union
+status: v.union(
+  v.literal("draft"),
+  v.literal("active"),
+  v.literal("archived")
+),
+
+// Arrays
+tags: v.array(v.string()),
+
+// Nested objects
+settings: v.object({
+  theme: v.string(),
+  notifications: v.boolean(),
+}),
+
+// Numbers with constraints
+age: v.number(), // Validated as number
+rating: v.number(), // 1-5 range enforced in mutation
+```
+
+## Migrations
+
+When schema changes are needed:
+
+<Steps>
+<Step>
+
+### Update Schema
+
+Modify `convex/schema.ts` with new fields or tables
+
+</Step>
+
+<Step>
+
+### Test Locally
+
+Run `bunx convex dev` to test changes in development
+
+</Step>
+
+<Step>
+
+### Write Migration Logic
+
+Create mutations to transform existing data if needed
+
+</Step>
+
+<Step>
+
+### Deploy to Production
+
+Run `npx convex deploy` to apply schema changes
+
+</Step>
+</Steps>
+
+## Performance Considerations
+
+### Query Optimization
+
+- Always use indexes for queries
+- Paginate large result sets
+- Limit fields returned when possible
+- Use search indexes for text search
+
+### Write Optimization
+
+- Batch related operations
+- Use transactions when needed
+- Avoid unnecessary database calls
+- Cache frequently accessed data
+
+## Backup & Recovery
+
+Convex automatically backs up your data:
+
+- **Point-in-time recovery**: Available on Pro plan
+- **Export**: Use `npx convex export` to create backups
+- **Import**: Restore from exports using `npx convex import`
+
+## Schema Versioning
+
+Track schema changes over time:
+
+| Version | Date | Changes | Migration Required |
+|---------|------|---------|-------------------|
+| 1.0.0 | 2024-01-01 | Initial schema | No |
+| 1.1.0 | 2024-02-01 | Added `projects` table | No |
+| 1.2.0 | 2024-03-01 | Added `status` field to users | Yes |

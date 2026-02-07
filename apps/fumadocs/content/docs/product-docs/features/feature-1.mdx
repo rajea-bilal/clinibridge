@@ -1,0 +1,806 @@
+---
+title: 'Example Feature 1'
+description: Example feature implementation guide
+---
+
+<Note>
+This is a placeholder feature guide. Replace this content with your actual feature documentation.
+</Note>
+
+## Overview
+
+This is an example feature guide that demonstrates how to document features in your Kaizen application.
+
+## Architecture Flow
+
+<Mermaid
+  chart="
+graph TD
+    A[User Interface] --> B[React Component]
+    B --> C[Convex Query/Mutation]
+    C --> D[Convex Backend]
+    D --> E[Database Schema]
+    
+    F[Authentication] --> C
+    G[Feature Flags] --> B
+    H[Environment Variables] --> D
+    
+    style A fill:#1e3a8a
+    style E fill:#7c2d12
+    style D fill:#14532d
+"
+/>
+
+## Data Flow Diagram
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant U as User
+    participant UI as React Component
+    participant C as Convex Client
+    participant S as Convex Server
+    participant DB as Database
+    
+    U->>UI: Interact with feature
+    UI->>C: Call mutation/query
+    C->>S: Send request
+    S->>DB: Read/Write data
+    DB-->>S: Return data
+    S-->>C: Process & return
+    C-->>UI: Update state
+    UI-->>U: Show updated UI
+"
+/>
+
+## Feature Integration Architecture
+
+<Mermaid
+  chart="
+graph LR
+    subgraph 'Frontend'
+        A[Route Component]
+        B[Feature Component]
+        C[UI Components]
+    end
+    
+    subgraph 'Backend'
+        D[Convex Functions]
+        E[Database Schema]
+        F[External APIs]
+    end
+    
+    subgraph 'Configuration'
+        G[Feature Flags]
+        H[Environment Variables]
+        I[Service Config]
+    end
+    
+    A --> B
+    B --> C
+    B --> D
+    D --> E
+    D --> F
+    G --> B
+    H --> D
+    I --> D
+    
+    style A fill:#7f1d1d
+    style E fill:#14532d
+    style G fill:#92400e
+"
+/>
+
+## Prerequisites
+
+- ✅ Feature is implemented and tested locally
+- ✅ Database schema changes (if any) are deployed
+- ✅ Environment variables are configured
+- ✅ Feature flags are enabled in `config.ts`
+
+## Implementation Plan
+
+### Phase 1: Database Schema & Backend Functions
+
+#### Database Schema Updates
+
+```typescript
+// convex/schema.ts
+export const notifications = defineTable({
+  userId: v.id("users"),
+  type: v.union(
+    v.literal("feature_alert"),
+    v.literal("system_update"),
+    v.literal("user_action")
+  ),
+  title: v.string(),
+  message: v.string(),
+  isRead: v.boolean(),
+  metadata: v.optional(v.object({
+    featureId: v.optional(v.id("features")),
+    actionUrl: v.optional(v.string()),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high")))
+  })),
+  createdAt: v.number(),
+  expiresAt: v.optional(v.number())
+})
+  .index("by_user", ["userId"])
+  .index("by_user_unread", ["userId", "isRead"])
+  .index("by_expiry", ["expiresAt"]);
+
+export const featureUsage = defineTable({
+  userId: v.id("users"),
+  featureId: v.id("features"),
+  action: v.string(),
+  metadata: v.optional(v.object({
+    duration: v.optional(v.number()),
+    success: v.optional(v.boolean()),
+    errorMessage: v.optional(v.string())
+  })),
+  timestamp: v.number(),
+  sessionId: v.optional(v.string())
+})
+  .index("by_user_feature", ["userId", "featureId"])
+  .index("by_timestamp", ["timestamp"]);
+```
+
+#### Convex Functions Implementation
+
+```typescript
+// convex/notifications.ts
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getUserNotifications = query({
+  args: { 
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+    unreadOnly: v.optional(v.boolean())
+  },
+  handler: async (ctx, args) => {
+    const { userId, limit = 50, unreadOnly = false } = args;
+    
+    let query = ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.or(
+        q.eq(q.field("expiresAt"), undefined),
+        q.gt(q.field("expiresAt"), Date.now())
+      ));
+
+    if (unreadOnly) {
+      query = query.filter((q) => q.eq(q.field("isRead"), false));
+    }
+
+    return await query
+      .order("desc")
+      .take(limit);
+  },
+});
+
+export const markNotificationAsRead = mutation({
+  args: { notificationId: v.id("notifications") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.notificationId, { isRead: true });
+  },
+});
+
+export const createNotification = mutation({
+  args: {
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("feature_alert"),
+      v.literal("system_update"),
+      v.literal("user_action")
+    ),
+    title: v.string(),
+    message: v.string(),
+    metadata: v.optional(v.object({
+      featureId: v.optional(v.id("features")),
+      actionUrl: v.optional(v.string()),
+      priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high")))
+    })),
+    expiresAt: v.optional(v.number())
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("notifications", {
+      ...args,
+      isRead: false,
+      createdAt: Date.now()
+    });
+  },
+});
+
+// convex/analytics.ts
+export const trackFeatureUsage = mutation({
+  args: {
+    userId: v.id("users"),
+    featureId: v.id("features"),
+    action: v.string(),
+    metadata: v.optional(v.object({
+      duration: v.optional(v.number()),
+      success: v.optional(v.boolean()),
+      errorMessage: v.optional(v.string())
+    })),
+    sessionId: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("featureUsage", {
+      ...args,
+      timestamp: Date.now()
+    });
+  },
+});
+
+export const getFeatureAnalytics = query({
+  args: {
+    featureId: v.id("features"),
+    timeRange: v.optional(v.union(
+      v.literal("24h"),
+      v.literal("7d"),
+      v.literal("30d")
+    ))
+  },
+  handler: async (ctx, args) => {
+    const { featureId, timeRange = "7d" } = args;
+    
+    const timeRanges = {
+      "24h": 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      "30d": 30 * 24 * 60 * 60 * 1000
+    };
+    
+    const cutoff = Date.now() - timeRanges[timeRange];
+    
+    const usage = await ctx.db
+      .query("featureUsage")
+      .withIndex("by_user_feature", (q) => q.eq("featureId", featureId))
+      .filter((q) => q.gt(q.field("timestamp"), cutoff))
+      .collect();
+
+    // Aggregate analytics
+    const totalUsage = usage.length;
+    const uniqueUsers = new Set(usage.map(u => u.userId)).size;
+    const successRate = usage.filter(u => u.metadata?.success !== false).length / totalUsage;
+    const avgDuration = usage
+      .filter(u => u.metadata?.duration)
+      .reduce((sum, u) => sum + (u.metadata?.duration || 0), 0) / totalUsage;
+
+    return {
+      totalUsage,
+      uniqueUsers,
+      successRate: Math.round(successRate * 100),
+      avgDuration: Math.round(avgDuration),
+      timeRange
+    };
+  },
+});
+```
+
+### Phase 2: Frontend Components & Hooks
+
+#### Custom Hooks for Feature Management
+
+```typescript
+// app/hooks/use-notifications.ts
+import { useQuery, useMutation } from "convex/react";
+import { api } from "~/convex/_generated/api";
+import { useSession } from "better-auth/react";
+import { useCallback } from "react";
+
+export function useNotifications() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id as Id<"users"> | undefined;
+
+  const notifications = useQuery(
+    api.notifications.getUserNotifications,
+    userId ? { userId, unreadOnly: true } : "skip"
+  );
+
+  const markAsRead = useMutation(api.notifications.markNotificationAsRead);
+  const createNotification = useMutation(api.notifications.createNotification);
+
+  const markNotificationAsRead = useCallback(
+    async (notificationId: Id<"notifications">) => {
+      await markAsRead({ notificationId });
+    },
+    [markAsRead]
+  );
+
+  const sendNotification = useCallback(
+    async (notification: {
+      type: "feature_alert" | "system_update" | "user_action";
+      title: string;
+      message: string;
+      metadata?: {
+        featureId?: Id<"features">;
+        actionUrl?: string;
+        priority?: "low" | "medium" | "high";
+      };
+      expiresAt?: number;
+    }) => {
+      if (!userId) return;
+      
+      await createNotification({
+        userId,
+        ...notification
+      });
+    },
+    [createNotification, userId]
+  );
+
+  return {
+    notifications: notifications || [],
+    unreadCount: notifications?.filter(n => !n.isRead).length || 0,
+    markNotificationAsRead,
+    sendNotification,
+    isLoading: notifications === undefined
+  };
+}
+
+// app/hooks/use-feature-analytics.ts
+import { useQuery, useMutation } from "convex/react";
+import { api } from "~/convex/_generated/api";
+import { useCallback } from "react";
+
+export function useFeatureAnalytics(featureId: Id<"features">) {
+  const analytics = useQuery(api.analytics.getFeatureAnalytics, { featureId });
+  const trackUsage = useMutation(api.analytics.trackFeatureUsage);
+
+  const trackFeatureUsage = useCallback(
+    async (action: string, metadata?: {
+      duration?: number;
+      success?: boolean;
+      errorMessage?: string;
+    }) => {
+      const { data: session } = useSession();
+      if (!session?.user) return;
+
+      await trackUsage({
+        userId: session.user.id as Id<"users">,
+        featureId,
+        action,
+        metadata,
+        sessionId: crypto.randomUUID()
+      });
+    },
+    [trackUsage, featureId]
+  );
+
+  return {
+    analytics,
+    trackFeatureUsage,
+    isLoading: analytics === undefined
+  };
+}
+```
+
+#### Notification Components
+
+```tsx
+// app/components/notifications/notification-bell.tsx
+import { Bell, Check } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "~/components/ui/dropdown-menu";
+import { Badge } from "~/components/ui/badge";
+import { useNotifications } from "~/hooks/use-notifications";
+import { formatDistanceToNow } from "date-fns";
+
+export function NotificationBell() {
+  const { notifications, unreadCount, markNotificationAsRead } = useNotifications();
+
+  const handleMarkAsRead = async (notificationId: Id<"notifications">) => {
+    await markNotificationAsRead(notificationId);
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent align="end" className="w-80">
+        <div className="p-2">
+          <h4 className="font-semibold">Notifications</h4>
+        </div>
+        <DropdownMenuSeparator />
+        
+        {notifications.length === 0 ? (
+          <div className="p-4 text-center text-muted-foreground">
+            No new notifications
+          </div>
+        ) : (
+          notifications.slice(0, 5).map((notification) => (
+            <DropdownMenuItem
+              key={notification._id}
+              className="flex flex-col items-start gap-1 p-3"
+              onClick={() => handleMarkAsRead(notification._id)}
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-sm">{notification.title}</span>
+                {!notification.isRead && (
+                  <Check className="h-3 w-3 text-blue-500" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {notification.message}
+              </p>
+              <span className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+              </span>
+            </DropdownMenuItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// app/components/notifications/notification-toast.tsx
+import { toast } from "sonner";
+import { useNotifications } from "~/hooks/use-notifications";
+import { useEffect } from "react";
+
+export function NotificationToast() {
+  const { notifications } = useNotifications();
+
+  useEffect(() => {
+    const latestNotification = notifications[0];
+    if (latestNotification && !latestNotification.isRead) {
+      toast.info(latestNotification.title, {
+        description: latestNotification.message,
+        action: latestNotification.metadata?.actionUrl ? {
+          label: "View",
+          onClick: () => window.open(latestNotification.metadata?.actionUrl, "_blank")
+        } : undefined,
+        duration: latestNotification.metadata?.priority === "high" ? 10000 : 5000,
+      });
+    }
+  }, [notifications]);
+
+  return null;
+}
+```
+
+#### Feature Analytics Dashboard
+
+```tsx
+// app/components/analytics/feature-dashboard.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Progress } from "~/components/ui/progress";
+import { useFeatureAnalytics } from "~/hooks/use-feature-analytics";
+import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
+
+interface FeatureDashboardProps {
+  featureId: Id<"features">;
+  featureName: string;
+}
+
+export function FeatureDashboard({ featureId, featureName }: FeatureDashboardProps) {
+  const { analytics, isLoading } = useFeatureAnalytics(featureId);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-muted animate-pulse rounded" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-muted animate-pulse rounded" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!analytics) return null;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">{featureName} Analytics</h2>
+        <Badge variant="outline" className="text-xs">
+          Last {analytics.timeRange}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Usage</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.totalUsage.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              +12% from last period
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Unique Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.uniqueUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              {Math.round((analytics.uniqueUsers / analytics.totalUsage) * 100)}% of total usage
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.successRate}%</div>
+            <Progress value={analytics.successRate} className="mt-2" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.avgDuration}ms</div>
+            <p className="text-xs text-muted-foreground">
+              Average response time
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+```
+
+### Phase 3: Route Integration & Layout Updates
+
+#### Dashboard Route with Notifications
+
+```tsx
+// app/routes/dashboard/index.tsx
+import type { Route } from "./+types/index";
+import { FeatureDashboard } from "~/components/analytics/feature-dashboard";
+import { NotificationToast } from "~/components/notifications/notification-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+
+export default function DashboardRoute(props: Route.ComponentProps) {
+  return (
+    <div className="container mx-auto py-8 space-y-8">
+      <NotificationToast />
+      
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <FeatureDashboard 
+            featureId="feature_123" as Id<"features">
+            featureName="Smart Notifications"
+          />
+        </div>
+        
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" variant="outline">
+                Send Test Notification
+              </Button>
+              <Button className="w-full" variant="outline">
+                View All Analytics
+              </Button>
+              <Button className="w-full" variant="outline">
+                Export Data
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+#### Layout Updates with Notification Bell
+
+```tsx
+// app/routes/dashboard/layout.tsx
+import type { Route } from "./+types/layout";
+import { Outlet } from "react-router";
+import { NotificationBell } from "~/components/notifications/notification-bell";
+import { Button } from "~/components/ui/button";
+import { Settings, User } from "lucide-react";
+
+export default function DashboardLayout(props: Route.ComponentProps) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold">Kaizen Dashboard</h1>
+            
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <main className="container mx-auto px-4 py-8">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+```
+
+## Testing
+
+### Local Testing
+
+1. Start your development server: `bun run dev`
+2. Navigate to the feature route
+3. Test all functionality
+4. Verify database operations work correctly
+
+### Production Testing
+
+1. Deploy to staging environment
+2. Test with real data
+3. Verify performance and error handling
+4. Check logs for any issues
+
+## Configuration
+
+### Feature Flags
+
+Enable the feature in your configuration:
+
+```typescript
+// config.ts
+export const config: AppConfig = {
+  features: {
+    // ... other features
+    featureExample: true, // Enable this feature
+  },
+  // ... rest of config
+};
+```
+
+### Environment Variables
+
+Add any required environment variables:
+
+```bash
+# .env.local
+FEATURE_EXAMPLE_API_KEY=your_api_key_here
+FEATURE_EXAMPLE_WEBHOOK_SECRET=whsec_...
+```
+
+## Architectural Changes
+
+### Before Implementation
+
+<Mermaid
+  chart="
+graph TD
+    A[User] --> B[Existing Route]
+    B --> C[Basic Component]
+    C --> D[Simple Query]
+    D --> E[Basic Schema]
+    
+    style A fill:#1e3a8a
+    style E fill:#7c2d12
+"
+/>
+
+### After Implementation
+
+<Mermaid
+  chart="
+graph TD
+    A[User] --> B[Enhanced Route]
+    B --> C[Feature Component]
+    C --> D[Complex Queries]
+    C --> E[New Mutations]
+    D --> F[Extended Schema]
+    E --> F
+    F --> G[External Service]
+    
+    H[Feature Flag] --> C
+    I[Auth Check] --> E
+    
+    style A fill:#1e3a8a
+    style F fill:#7c2d12
+    style G fill:#92400e
+    style H fill:#14532d
+"
+/>
+
+### Database Schema Evolution
+
+<Mermaid
+  chart="
+erDiagram
+    USERS ||--o{ FEATURE_ITEMS : creates
+    FEATURE_ITEMS {
+        string name
+        string description
+        id userId
+        number createdAt
+        string status
+    }
+    
+    FEATURE_ITEMS ||--o{ FEATURE_METADATA : has
+    FEATURE_METADATA {
+        string key
+        string value
+        id featureId
+    }
+"
+/>
+
+## Troubleshooting
+
+### Common Issues
+
+**Feature not appearing:**
+- Check that the feature flag is enabled in `config.ts`
+- Verify the route is properly configured
+- Check browser console for errors
+
+**Database errors:**
+- Ensure schema changes are deployed: `bunx convex deploy`
+- Check Convex dashboard for function errors
+- Verify user permissions
+
+**Performance issues:**
+- Check query performance in Convex dashboard
+- Consider adding indexes for frequently queried fields
+- Optimize component re-renders
+
+## Next Steps
+
+- [ ] Add authentication checks
+- [ ] Implement error boundaries
+- [ ] Add loading states
+- [ ] Write unit tests
+- [ ] Add analytics tracking
+- [ ] Consider caching strategies

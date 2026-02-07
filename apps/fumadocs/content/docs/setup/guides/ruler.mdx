@@ -1,0 +1,187 @@
+---
+title: 'Ruler'
+description: Transform rules into LLM-ready markdown for AI coding assistants
+icon: Ruler
+---
+
+<Note>
+  Ruler transforms your project's conventions and rules into LLM-ready markdown, ensuring AI coding assistants never hallucinate on your codebase's conventions.
+</Note>
+
+Ruler automatically converts your project rules and conventions into markdown files that AI coding assistants (like Cursor, Claude, etc.) can read and follow.
+
+## What is Ruler?
+
+Ruler scans your codebase for:
+- Rule files (`.cursor/rules/`)
+- Project conventions
+- Documentation patterns
+
+It then transforms these into properly formatted markdown that AI assistants can understand and apply.
+
+## Configuration
+
+Ruler is configured in `.ruler/ruler.toml`:
+
+```toml
+# Ruler Configuration File
+# See https://okigu.com/ruler for documentation.
+
+# Default agents to run when --agents is not specified
+default_agents = ["amp", "claude", "codex", "cursor", "windsurf", "cline", "gemini-cli", "opencode", "zed", "qwen"]
+
+# --- Global MCP Server Configuration ---
+[mcp]
+# Enable/disable MCP propagation globally (default: true)
+enabled = true
+# Global merge strategy: 'merge' or 'overwrite' (default: 'merge')
+merge_strategy = "merge"
+
+# --- MCP Server Definitions ---
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+
+
+[mcp_servers.convex]
+command = "npx"
+args = ["-y", "convex@latest", "mcp", "start"]
+
+[mcp_servers.shadcn]
+command = "npx"
+args = ["shadcn@latest", "mcp"]
+
+
+
+
+[mcp_servers.better-auth]
+url = "https://mcp.chonkie.ai/better-auth/better-auth-builder/mcp"
+
+
+
+# --- Global .gitignore Configuration ---
+[gitignore]
+# Enable/disable automatic .gitignore updates (default: true)
+enabled = true
+```
+
+## Rule Files Location
+
+Your project rules are stored in `.cursor/rules/`:
+
+- **`ultracite.mdc`**: Ultracite formatting and linting rules
+- **`convex_rules.mdc`**: Convex-specific best practices
+- **`tanstack-start.mdc`**: TanStack Start patterns
+- **`cli-tools.mdc`**: Modern CLI tool preferences
+- **`ruler_cursor_instructions.mdc`**: General coding conventions
+
+## Usage
+
+### Apply Rules to AI Assistants
+
+Update rules for all configured AI assistants:
+
+```bash
+bun run ruler:apply
+```
+
+This command:
+- Scans `.cursor/rules/` for rule files
+- Converts them to LLM-ready markdown
+- Applies them to configured AI assistants (Cursor, Claude, etc.)
+
+### Applying to Specific Agents
+
+You can target specific AI assistants:
+
+```bash
+bunx @intellectronica/ruler@latest apply --agents cursor,claude
+```
+
+Available agents:
+- `cursor` - Cursor IDE
+- `claude` - Claude Desktop
+- `windsurf` - Windsurf IDE
+- `codex` - Codex
+- `amp` - Amp
+- `cline` - Cline
+- `gemini-cli` - Google Gemini CLI
+- `opencode` - OpenCode
+- `zed` - Zed Editor
+- `qwen` - Qwen
+
+## How It Works
+
+1. **Rule Discovery**: Ruler scans `.cursor/rules/` for `.mdc` files
+2. **Transformation**: Converts markdown to LLM-optimized format
+3. **Application**: Writes rules to agent-specific locations
+4. **MCP Integration**: Optionally propagates rules via MCP servers
+
+## Creating Custom Rules
+
+Add new rule files to `.cursor/rules/`:
+
+```markdown
+---
+description: Your rule description
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+Your rules here...
+
+## Rule Category
+
+- Rule 1
+- Rule 2
+```
+
+### Rule File Frontmatter
+
+- **`description`**: Brief description of the rules
+- **`globs`**: File patterns these rules apply to
+- **`alwaysApply`**: Whether rules should always be active
+
+## MCP Server Integration
+
+Ruler can configure MCP (Model Context Protocol) servers for AI assistants:
+
+- **Context7**: Up-to-date library documentation
+- **Convex**: Convex backend helpers
+- **Shadcn**: Component library helpers
+- **Better Auth**: Authentication helpers
+
+These are configured in `.ruler/ruler.toml` and automatically propagated to AI assistants.
+
+## Benefits
+
+### For Developers
+
+- **Consistency**: All AI assistants follow the same rules
+- **Automation**: Rules are applied automatically
+- **Maintenance**: Update rules in one place
+
+### For AI Assistants
+
+- **Context**: Understands your project conventions
+- **Accuracy**: Generates code matching your style
+- **Learning**: Learns from your documented patterns
+
+## Common Workflows
+
+### Adding a New Convention
+
+1. Create a rule file in `.cursor/rules/`:
+   ```bash
+   echo "---\ndescription: My new rules\nglobs: '**/*.ts'\n---\n\n- Use const for immutable values" > .cursor/rules/my-rules.mdc
+   ```
+
+2. Apply rules:
+   ```bash
+   bun run ruler:apply
+   ```
+
+### Updating Existing Rules
+
+1. Edit rule files in `.cursor/rules/`
+2. Run `bun run ruler:apply` to propagate changes

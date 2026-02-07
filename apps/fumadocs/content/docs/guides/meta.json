@@ -1,0 +1,7 @@
+{
+  "title": "Developer Guides",
+  "description": "Guides for using development tools",
+  "icon": "BookOpen",
+  "root": true,
+  "pages": ["index", "ultracite", "ruler"]
+}

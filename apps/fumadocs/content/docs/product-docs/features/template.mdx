@@ -1,0 +1,335 @@
+---
+title: '[Replace with Feature Name]'
+description: '[Brief description of the feature]'
+icon: Star
+---
+
+<Note>
+Replace this with a brief note about what this feature does and why it's important.
+</Note>
+
+## Overview
+
+[Brief description of the feature and its purpose]
+
+## Architecture Flow
+
+<Mermaid
+  chart="
+graph TD
+    A[User Interface] --> B[React Component]
+    B --> C[Convex Query/Mutation]
+    C --> D[Convex Backend]
+    D --> E[Database Schema]
+    
+    F[Authentication] --> C
+    G[Feature Flags] --> B
+    H[Environment Variables] --> D
+    
+    style A fill:#1e3a8a
+    style E fill:#7c2d12
+    style D fill:#14532d
+"
+/>
+
+## Data Flow Diagram
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant U as User
+    participant UI as React Component
+    participant C as Convex Client
+    participant S as Convex Server
+    participant DB as Database
+    
+    U->>UI: Interact with feature
+    UI->>C: Call mutation/query
+    C->>S: Send request
+    S->>DB: Read/Write data
+    DB-->>S: Return data
+    S-->>C: Process & return
+    C-->>UI: Update state
+    UI-->>U: Show updated UI
+"
+/>
+
+## Feature Integration Architecture
+
+<Mermaid
+  chart="
+graph LR
+    subgraph 'Frontend'
+        A[Route Component]
+        B[Feature Component]
+        C[UI Components]
+    end
+    
+    subgraph 'Backend'
+        D[Convex Functions]
+        E[Database Schema]
+        F[External APIs]
+    end
+    
+    subgraph 'Configuration'
+        G[Feature Flags]
+        H[Environment Variables]
+        I[Service Config]
+    end
+    
+    A --> B
+    B --> C
+    B --> D
+    D --> E
+    D --> F
+    G --> B
+    H --> D
+    I --> D
+    
+    style A fill:#7f1d1d
+    style E fill:#14532d
+    style G fill:#92400e
+"
+/>
+
+## Prerequisites
+
+- ✅ Feature is implemented and tested locally
+- ✅ Database schema changes (if any) are deployed
+- ✅ Environment variables are configured
+- ✅ Feature flags are enabled in `config.ts`
+
+## Implementation Plan
+
+### Phase 1: Database Schema & Backend Functions
+
+#### Database Schema Updates
+
+```typescript
+// convex/schema.ts
+export const [tableName] = defineTable({
+  // Define your table schema here
+})
+  .index("by_[field]", ["[field]"]);
+```
+
+#### Convex Functions Implementation
+
+```typescript
+// convex/[feature].ts
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const [functionName] = query({
+  args: { 
+    // Define your arguments here
+  },
+  handler: async (ctx, args) => {
+    // Implement your query logic here
+  },
+});
+
+export const [functionName] = mutation({
+  args: {
+    // Define your arguments here
+  },
+  handler: async (ctx, args) => {
+    // Implement your mutation logic here
+  },
+});
+```
+
+### Phase 2: Frontend Components & Hooks
+
+#### Custom Hooks for Feature Management
+
+```typescript
+// app/hooks/use-[feature].ts
+import { useQuery, useMutation } from "convex/react";
+import { api } from "~/convex/_generated/api";
+import { useSession } from "better-auth/react";
+import { useCallback } from "react";
+
+export function use[Feature]() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id as Id<"users"> | undefined;
+
+  // Add your hooks logic here
+
+  return {
+    // Return your hook values here
+  };
+}
+```
+
+#### Feature Components
+
+```tsx
+// app/components/[feature]/[component-name].tsx
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+
+export function [ComponentName]() {
+  // Add your component logic here
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">[Component Title]</h2>
+      
+      {/* Add your component JSX here */}
+    </div>
+  );
+}
+```
+
+### Phase 3: Route Integration & Layout Updates
+
+#### Route Implementation
+
+```tsx
+// app/routes/[route-path].tsx
+import type { Route } from "./+types/[route-name]";
+import { [ComponentName] } from "~/components/[feature]/[component-name]";
+
+export default function [RouteName]Route(props: Route.ComponentProps) {
+  return (
+    <div className="container mx-auto py-8">
+      <[ComponentName] />
+    </div>
+  );
+}
+```
+
+## Testing
+
+### Local Testing
+
+1. Start your development server: `bun run dev`
+2. Navigate to the feature route
+3. Test all functionality
+4. Verify database operations work correctly
+
+### Production Testing
+
+1. Deploy to staging environment
+2. Test with real data
+3. Verify performance and error handling
+4. Check logs for any issues
+
+## Configuration
+
+### Feature Flags
+
+Enable the feature in your configuration:
+
+```typescript
+// config.ts
+export const config: AppConfig = {
+  features: {
+    // ... other features
+    [featureName]: true, // Enable this feature
+  },
+  // ... rest of config
+};
+```
+
+### Environment Variables
+
+Add any required environment variables:
+
+```bash
+# .env.local
+[FEATURE_NAME]_API_KEY=your_api_key_here
+[FEATURE_NAME]_WEBHOOK_SECRET=whsec_...
+```
+
+## Architectural Changes
+
+### Before Implementation
+
+<Mermaid
+  chart="
+graph TD
+    A[User] --> B[Existing Route]
+    B --> C[Basic Component]
+    C --> D[Simple Query]
+    D --> E[Basic Schema]
+    
+    style A fill:#1e3a8a
+    style E fill:#7c2d12
+"
+/>
+
+### After Implementation
+
+<Mermaid
+  chart="
+graph TD
+    A[User] --> B[Enhanced Route]
+    B --> C[Feature Component]
+    C --> D[Complex Queries]
+    C --> E[New Mutations]
+    D --> F[Extended Schema]
+    E --> F
+    F --> G[External Service]
+    
+    H[Feature Flag] --> C
+    I[Auth Check] --> E
+    
+    style A fill:#1e3a8a
+    style F fill:#7c2d12
+    style G fill:#92400e
+    style H fill:#14532d
+"
+/>
+
+### Database Schema Evolution
+
+<Mermaid
+  chart="
+erDiagram
+    USERS ||--o{ FEATURE_ITEMS : creates
+    FEATURE_ITEMS {
+        string name
+        string description
+        id userId
+        number createdAt
+        string status
+    }
+    
+    FEATURE_ITEMS ||--o{ FEATURE_METADATA : has
+    FEATURE_METADATA {
+        string key
+        string value
+        id featureId
+    }
+"
+/>
+
+## Troubleshooting
+
+### Common Issues
+
+**[Issue 1]:**
+- Check that the feature flag is enabled in `config.ts`
+- Verify the route is properly configured
+- Check browser console for errors
+
+**[Issue 2]:**
+- Ensure schema changes are deployed: `bunx convex deploy`
+- Check Convex dashboard for function errors
+- Verify user permissions
+
+**[Issue 3]:**
+- Check query performance in Convex dashboard
+- Consider adding indexes for frequently queried fields
+- Optimize component re-renders
+
+## Next Steps
+
+- [ ] Add authentication checks
+- [ ] Implement error boundaries
+- [ ] Add loading states
+- [ ] Write unit tests
+- [ ] Add analytics tracking
+- [ ] Consider caching strategies

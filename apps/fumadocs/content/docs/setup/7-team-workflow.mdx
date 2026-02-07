@@ -1,0 +1,138 @@
+---
+title: 'Team Workflow'
+description: Work quickly within a team dynamic
+icon: Users
+---
+
+<Note>
+  Last updated on: November 5, 2025
+</Note>
+
+<Warning>
+  **No Preview Environments:** Cloudflare Workers doesn't currently support Convex preview deployments like Vercel does. All testing must be done locally before creating PRs.
+</Warning>
+
+## Development Workflow
+
+Every time anyone in your team comes back to work on a project based off of Yugen within a team dynamic, do the following:
+
+### 1. Pull the latest changes
+```bash
+git checkout main && git pull
+```
+
+### 2. Install dependencies
+```bash
+bun install
+```
+
+<Note>
+  In case any new dependencies were added
+</Note>
+
+### 3. Start Dev Servers
+
+**Terminal 1** - Cloudflare Workers dev server (via Alchemy):
+
+From the **`apps/web/`** directory:
+```bash
+bun alchemy dev
+```
+
+<Note>
+  Make sure you're in the `apps/web/` directory (where `alchemy.run.ts` exists).
+</Note>
+
+**Terminal 2** - Frontend Web Server + Convex + Fumadocs:
+```bash
+bun run dev
+```
+
+This starts:
+- **App**: `http://localhost:3002` (web server)
+- **Cloudflare Workers**: `http://localhost:3001` (Cloudflare Workers dev server)
+- **Docs**: `http://localhost:4000`
+
+### 4. Webhook Testing
+```bash
+ngrok http 3002
+```
+
+<Note>
+  Remember, you only need to run ngrok when testing webhooks (payments only). Use port 3002 (web server), not 3001 (Cloudflare Workers dev server).
+</Note>
+
+If you do use ngrok, every time you run `ngrok http 3002`, it will generate a new URL so you need to update these locations:
+
+1. **Local Environment** (`.env.convex.dev`, `packages/backend/.env.local`, `apps/web/.env.local`):
+   ```bash
+   SITE_URL=https://new-ngrok-url.ngrok.app
+   ```
+
+2. **Apply to Convex:**
+   ```bash
+   bun run setup:convex:dev
+   ```
+
+3. **Polar.sh Webhook URL:**
+   - Navigate to Polar Dashboard → Settings → Webhooks
+   - Update the webhook URL to use your new ngrok URL
+
+### 5. Restart Servers
+   ```bash
+   # Stop and restart both dev servers
+   bun run dev  # From root
+   bun alchemy dev  # From apps/web/
+   ```
+
+## Building Features and Fixing Bugs
+
+Now you can start building features or fixing bugs.
+
+### 1. Creating a PR
+
+Once you think you're done with a feature (and have sufficiently tested it locally), you can do the following:
+
+1. Ensure all tests pass locally
+2. Test the feature thoroughly with ngrok (if webhooks involved)
+3. Document any new environment variables in the PR description
+4. Open a PR
+5. Wait for team review and approval
+
+<Note>
+  Since Cloudflare Workers doesn't support preview environments with Convex, make sure you test everything locally before opening the PR.
+</Note>
+
+### 2. Merging to Production
+
+Once the PR has been tested and approved, you should do the following as the Author of the PR:
+
+1. Go to your Convex Dashboard → `Settings` → `Environment Variables` → `Production`
+2. Add any extra Environment Variables that this PR required
+3. Add any extra Environment Variables that this PR required to your Cloudflare Workers production settings
+4. Click `Save`
+5. Deploy to production:
+   ```bash
+   bun run deploy
+   ```
+6. Test the change in Production to ensure it works as expected and hasn't broken anything
+7. Monitor Convex logs for any errors
+
+## Feature Flags
+
+Feature flags are an additional safety layer that let you test new features in production without affecting all users.
+
+<Note>
+  Coming soon...
+</Note>
+
+## Best Practices
+
+- ✅ Always test locally before creating PR
+- ✅ Document all environment variable changes in PR description
+- ✅ Test production thoroughly after merge
+- ✅ Monitor Convex and Cloudflare Workers logs
+- ✅ Keep ngrok URLs updated when testing webhooks
+- ❌ Don't merge untested code
+- ❌ Don't skip local testing because preview environments aren't available
+

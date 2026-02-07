@@ -1,0 +1,192 @@
+---
+title: Cost Estimation
+description: Project development and operational costs
+icon: DollarSign
+updated: 2025-11-23
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout title="Demo Only" type="info">
+  This is a dummy documentation page for demo purposes—there's no real product idea here. Content is placeholder and not based on an actual project.
+</Callout>
+
+Track your projected costs for development and monthly operations.
+
+<Warning>
+Update these estimates based on your specific usage and requirements!
+</Warning>
+
+## Monthly Operational Costs
+
+### Infrastructure (Starting Point)
+
+| Service | Tier | Cost/Month | Notes |
+|---------|------|------------|-------|
+| **Cloudflare Workers** | Free to Paid | Free to paid | Free tier with 10M requests/month, then paid subscription |
+| **Cloudflare Workers Logs** | Free to Paid | Pay-as-you-go | Free tier with 20M logs per month, then pay-as-you-go pricing |
+| **Convex** | Starter to Pro | {`$0`} to {`$25`} and up | {`$25`} per seat plus usage-based pricing (see scaling section) |
+| **BetterAuth** | Free | {`$0`} | Open-source, completely free |
+| **Polar.sh** | Free | {`$0`} plus 4% plus {`$0.40`}/tx | 4% of revenue plus {`$0.40`} per transaction |
+| **UseAutumn** | Free to Pro | {`$0`} to {`$375`} | Free up to {`$8`}K/month revenue, then {`$375`}/month up to {`$50`}K |
+| **Resend** | Free to Paid | {`$0`} to {`$20`} and up | Tiered pricing: {`$20`} (50K), {`$40`} (500K), {`$70`} (1M), {`$100`} (2M), plus {`$70`} per additional million |
+| **Sentry** | Free to Business | {`$0`} to {`$26`} to {`$80`} | Free (under 5K errors), Team ({`$26`}, 5K-50K errors), Business ({`$80`}, 50K and up errors) |
+| **Cloudflare R2** | Pay-as-you-go | {`$0.015`}/GB | Object storage for files |
+| **Domain** | N/A | {`$1`}-2 | Annual cost divided by 12 |
+| **OpenAI** (optional) | Pay-as-you-go | {`$10`}-50 | Depends on usage |
+| **Total (Free Tier)** | | **~{`$1`}-2** | Minimal cost to start |
+| **Total (Paid Tier)** | | **~{`$90`}-140** | Production-ready setup |
+
+### Scaling Costs
+
+As you grow, costs scale with usage:
+
+#### Convex Scaling
+
+| Users | Tier | Estimated Cost |
+|-------|------|----------------|
+| 0-1K | Starter (Free) | {`$0`} |
+| 1K-10K | Pro | {`$25`}-100 |
+| 10K-100K | Pro | {`$100`}-500 |
+| 100K and up | Enterprise | Contact for pricing |
+
+#### BetterAuth Scaling
+
+| Users | Tier | Cost |
+|-------|------|------|
+| Unlimited | Free | {`$0`} |
+| Any scale | Free | {`$0`} |
+
+<Note>
+BetterAuth is completely free and open-source with no usage limits or pricing tiers.
+</Note>
+
+#### UseAutumn Scaling (if using UseAutumn)
+
+| Monthly Revenue | Tier | Cost |
+|-----------------|------|------|
+| {`$0`}-8K | Free | {`$0`} |
+| {`$8`}K-50K | Pro | {`$375`}/month |
+| {`$50`}K and up | Enterprise | Custom pricing |
+
+<Note>
+  UseAutumn charges are based on your monthly revenue processed through the platform, not user count.
+</Note>
+
+#### Platform Scaling
+
+**Cloudflare Workers (Frontend):**
+| Requests/Month | Tier | Cost |
+|-----------------|------|------|
+| 0-10M | Free | {`$0`} |
+| 10M and up | Paid | {`$5`}/month subscription plus {`$0.30`} per million requests |
+| High volume | Enterprise | Custom pricing |
+
+**Cloudflare Workers Logs:**
+| Logs/Month | Tier | Cost |
+|------------|------|------|
+| 0-20M | Free | {`$0`} |
+| 20M and up | Paid | {`$0.60`} per million logs |
+
+**Convex (Backend):**
+| Component | Free Tier | Paid Pricing |
+|-----------|-----------|---------------|
+| Developer Seats | First dev free | {`$25`} per additional developer/month |
+| Function Calls | 1M/month | {`$2.20`} per million after free tier |
+| Action Compute | 20 GB-hours/month | {`$0.33`} per GB-hour after free tier |
+| Database Storage | 0.5 GB | {`$0.22`} per GB after free tier |
+| Database Bandwidth | 1 GB/month | {`$0.22`} per GB after free tier |
+| Enterprise | N/A | Contact for pricing |
+
+## Revenue Projections
+
+### Pricing Model
+
+Define your pricing strategy:
+
+| Plan | Price/Month | Features | Target Users |
+|------|-------------|----------|--------------|
+| Free | {`$0`} | Basic features | Early adopters |
+| Starter | {`$10`} | Standard features | Individual users |
+| Pro | {`$30`} | Advanced features | Power users |
+| Enterprise | {`$100`} and up | Custom features | Teams |
+
+### Break-Even Analysis
+
+Calculate when you'll break even:
+
+**Monthly Costs**: $X (from operational costs above)
+**Average Revenue per User (ARPU)**: $X
+**Break-Even Users**: Monthly Costs ÷ ARPU = X users
+
+### Growth Projections
+
+| Month | Users | MRR | Costs | Profit/Loss |
+|-------|-------|-----|-------|-------------|
+| 1 | 10 | {`$100`} | {`$90`} | +{`$10`} |
+| 3 | 50 | {`$500`} | {`$120`} | +{`$380`} |
+| 6 | 200 | {`$2`},000 | {`$200`} | +{`$1`},800 |
+| 12 | 500 | {`$5`},000 | {`$350`} | +{`$4`},650 |
+
+## Cost Optimization Tips
+
+### Reduce Costs
+
+1. **Start with free tiers** - All services offer generous free plans
+2. **Delay premium features** - Don't upgrade until you need it
+3. **Optimize API calls** - Cache data to reduce Convex reads
+4. **Batch operations** - Reduce number of database operations
+5. **Monitor usage** - Set up alerts before hitting limits
+
+### When to Upgrade
+
+Upgrade services when:
+- You consistently hit free tier limits
+- You need better support
+- You require advanced features
+- Your revenue supports the cost
+
+## Payment Processing Fees
+
+### Polar.sh Fees
+
+- **Percentage**: 4% of transaction amount
+- **Per Transaction**: {`$0.40`} per transaction
+- **Example**: {`$10`} subscription = {`$0.40`} (4%) + {`$0.40`} (transaction) = {`$0.80`} fee = {`$9.20`} net
+- **Volume discounts**: May be available at higher volumes
+
+### Stripe (via Polar)
+
+- **Credit cards**: 2.9% + {`$0.30`}
+- **Polar fees**: 4% + {`$0.40`} per transaction
+- **Total fees**: ~6.9% + {`$0.70`} per transaction
+- **Example**: {`$10`} transaction = {`$0.29`} (Stripe) + {`$0.40`} (Polar %) + {`$0.40`} (Polar tx) = {`$1.09`} in fees = {`$8.91`} net
+
+### UseAutumn (Direct Stripe Integration)
+
+- **Stripe fees**: 2.9% + {`$0.30`} per transaction
+- **UseAutumn platform**: Free up to {`$8`}K/month revenue, then {`$375`}/month up to {`$50`}K
+- **Total transaction fees**: ~2.9% + {`$0.30`} per transaction
+- **Example**: {`$10`} transaction = ~{`$0.59`} in Stripe fees = {`$9.41`} net
+- **Note**: UseAutumn charges are based on monthly revenue thresholds, not per-transaction fees. You only pay Stripe's processing fees per transaction.
+
+## Total Cost of Ownership (TCO)
+
+### First Year Estimate
+
+| Category | Cost |
+|----------|------|
+| Development | $X |
+| Infrastructure (Year 1 avg) | $X |
+| Domain | {`$15`} |
+| Marketing (optional) | $X |
+| **Total Year 1** | **$X** |
+
+### Ongoing Annual Cost
+
+| Category | Cost/Year |
+|----------|-----------|
+| Infrastructure | $X |
+| Domain renewal | {`$15`} |
+| Tools & subscriptions | $X |
+| **Total Ongoing** | **$X/year** |

@@ -1,0 +1,91 @@
+---
+title: 'Solo Workflow'
+icon: User
+---
+
+<Note>
+  Last updated on: November 5, 2025
+</Note>
+
+Every time you come back to work on a project based off of Yugen, start your development environment as follows:
+
+## 1. Frontend Web Server
+
+In one terminal, run the following command:
+
+```bash
+bun run dev
+```
+
+This uses TurboRepo TUI to start the web server, Convex backend, and Fumadocs in one go.
+
+Your app will be running at:
+- **App**: `http://localhost:3002` (web server)
+- **Cloudflare Workers**: `http://localhost:3001` (Cloudflare Workers dev server)
+- **Docs**: `http://localhost:4000`
+
+## 2. Cloudflare Workers Dev Server
+
+In another terminal, from the **`apps/web/`** directory:
+
+```bash
+bun alchemy dev
+```
+
+<Note>
+  Make sure you're in the `apps/web/` directory (where `alchemy.run.ts` exists).
+</Note>
+
+## 3. Webhook Testing
+
+In another terminal, run the following command:
+
+```bash
+ngrok http 3002
+```
+
+<Note>
+  You only need to run ngrok when testing webhooks (payments only). Use port 3002 (web server), not 3001 (Cloudflare Workers dev server).
+</Note>
+
+If you do use ngrok, every time you run `ngrok http 3002`, it will generate a new URL so you need to update these locations:
+
+1. **Local Environment** (`.env.convex.dev`, `packages/backend/.env.local`, `apps/web/.env.local`):
+   ```bash
+   SITE_URL=https://new-ngrok-url.ngrok.app
+   ```
+
+2. **Apply to Convex:**
+   ```bash
+   bun run setup:convex:dev
+   ```
+
+3. **Polar.sh Webhook URL:**
+   - Navigate to Polar Dashboard → Settings → Webhooks
+   - Update the webhook URL to use your new ngrok URL
+
+4. **Restart Servers:**
+   ```bash
+   # Stop both servers (Ctrl+C) and restart
+   bun run dev  # From root
+   bun alchemy dev  # From apps/web/
+   ```
+
+<Note>
+  You may need to buy an ngrok pro plan because they limit usage for free users.
+</Note>
+
+
+## 4. Build & Deploy
+
+Now you can start building features or fixing bugs.
+
+Once you're done and have tested locally:
+
+```bash
+# Deploy to production
+bun run deploy
+```
+
+This deploys your app to Cloudflare Workers and updates your Convex production environment.
+

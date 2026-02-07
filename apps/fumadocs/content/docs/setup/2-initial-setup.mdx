@@ -1,0 +1,566 @@
+---
+title: 'Initial Setup'
+description: 'Clone Yugen, configure providers, and start development'
+icon: Rocket
+---
+
+<Note>
+  Last updated on: November 8, 2025
+</Note>
+
+Complete guide to get Yugen running locally.
+
+## Clone and Install
+
+<Steps>
+
+<Step>
+
+### Create a Fresh GitHub Repository
+
+```bash
+gh repo create your-project-name --private
+```
+
+This creates a new private GitHub repository for your project.
+
+</Step>
+
+<Step>
+
+### Clone Yugen
+
+```bash
+git clone git@github.com:code-and-creed/yugen.git your-project-name
+cd your-project-name
+```
+
+</Step>
+
+<Step>
+
+### Remove Git Repository
+
+```bash
+rm -rf .git
+```
+
+This removes the Git repository so you can start fresh.
+
+</Step>
+
+<Step>
+
+### Install Dependencies
+
+```bash
+bun install
+```
+
+This installs all dependencies for the monorepo, including frontend and backend packages.
+
+</Step>
+
+<Step>
+
+### Remove Remote Repository and add new one
+
+```bash
+git remote remove upstream
+git remote add origin git@github.com:your-username/your-project-name.git
+```
+
+</Step>
+
+<Step>
+
+### Rename occurences of yugen/Yugen with your project name
+
+```bash
+bun run rename-project [your-project-name]
+```
+
+</Step>
+
+<Step>
+
+### Commit and Push Changes
+
+```bash
+git add .
+git commit -m "Initial commit"
+git push origin main
+```
+
+</Step>
+
+<Step>
+
+### Create Environment File
+
+```bash
+cp .env.convex.dev.example .env.convex.dev
+```
+
+This creates your development environment file where you'll add all provider credentials.
+
+</Step>
+</Steps>
+
+## Provider Setup
+
+Set up these provider accounts and add the credentials to your `.env.convex.dev` file:
+
+### 1. Convex
+
+<Cards>
+  <Card
+    title="Convex"
+    href="https://convex.dev"
+    description="Backend-as-a-service with ACID database and real-time sync"
+  />
+</Cards>
+
+Just sign up for a free account if you haven't already.
+
+No credentials needed yet - we'll create the project in the next section.
+
+### 2. BetterAuth
+
+<Cards>
+  <Card
+    title="BetterAuth"
+    href="https://betterauth.com"
+    description="Free, open-source authentication with 2FA, Passkeys, and SSO"
+  />
+</Cards>
+
+**Generate Auth Secret:**
+
+```bash
+openssl rand -base64 32
+```
+
+Add this value to your `.env.convex.dev` file as `BETTER_AUTH_SECRET`.
+
+**OAuth Providers (Optional):**
+
+Add Google, GitHub, or other OAuth providers for social authentication.
+
+<details>
+<summary>Google OAuth Setup</summary>
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/dashboard)
+2. Create a new project or select existing
+3. Navigate to **APIs & Services** → **Credentials**
+4. Click **Create Credentials** → **OAuth client ID**
+5. Configure consent screen if prompted
+6. Application type: **Web application**
+7. Add authorized redirect URIs:
+   - `http://localhost:3002/api/auth/callback/google` (development)
+   - `https://yourdomain.com/api/auth/callback/google` (production)
+8. Copy **Client ID** and **Client Secret**
+
+Add to `.env.convex.dev`:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+</details>
+
+<details>
+<summary>GitHub OAuth Setup</summary>
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Fill in:
+   - **Application name:** Your App Name
+   - **Homepage URL:** `http://localhost:3002` (or your domain)
+   - **Authorization callback URL:** `http://localhost:3002/api/auth/callback/github`
+4. Click **Register application**
+5. Copy **Client ID**
+6. Click **Generate a new client secret** → Copy it
+
+Add to `.env.convex.dev`:
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+
+</details>
+
+<Note>
+  You'll also need to configure these providers in `packages/backend/convex/auth.ts`. See the [BetterAuth Social Providers docs](https://www.better-auth.com/docs/authentication/social) for more options.
+</Note>
+
+### 3. Polar.sh (Payments)
+
+<Cards>
+  <Card
+    title="Polar.sh Sandbox"
+    href="https://sandbox.polar.sh"
+    description="Create your sandbox account for testing payments"
+  />
+</Cards>
+
+**Get these values:**
+1. Create an organization
+2. Copy your **Organization ID** (Settings → Profile → Identifier)
+3. Go to Settings → API → **Create Personal Access Token**
+4. Call it `dev` and set the expiration to `No expiration` click `Select All` for the scopes
+5. Click `Create Token`
+
+Add these to your `.env.convex.dev` file as:
+- `POLAR_ORGANIZATION_ID`
+- `POLAR_ACCESS_TOKEN`
+
+<Note>
+  We'll setup the POLAR_WEBHOOK_SECRET later in the setup process.
+</Note>
+
+### 4. Resend (Email)
+
+<Cards>
+  <Card
+    title="Resend"
+    href="https://resend.com"
+    description="Create account for transactional emails"
+  />
+</Cards>
+
+**Get API Key:**
+1. Go to Resend Dashboard → **API Keys** → **Create**
+2. Copy the API key (starts with `re_`)
+
+Add these to your `.env.convex.dev` file as:
+- `RESEND_API_KEY`
+- `SENDER_EMAIL` (use `onboarding@resend.dev` for development)
+- `COMPANY_NAME` (your company name)
+
+**Domain Setup (Production only):**
+1. Go to **Domains** → **Add Domain**
+2. Enter your domain (e.g., `yourdomain.com`)
+3. Add required DNS records to your domain registrar:
+   - TXT record for domain verification
+   - MX record for email routing
+   - CNAME record for SPF/DKIM
+4. Wait for verification (12-48 hours for DNS propagation)
+
+<Note>
+  For development, use Resend's sandbox domain (`onboarding@resend.dev`). Production requires your own verified domain.
+</Note>
+
+### 5. Cloudflare R2 (Storage)
+
+<Cards>
+  <Card
+    title="Cloudflare Dashboard"
+    href="https://dash.cloudflare.com"
+    description="Create account for R2 storage and Workers deployment"
+  />
+</Cards>
+
+**Create R2 Bucket:**
+1. Navigate to Storage & databases → **R2 object storage** → **Overview**
+2. Click **Create Bucket**
+3. Name: `your-bucket-name-dev` (for development)
+4. Click **Create Bucket**
+
+**Get API Credentials:**
+1. In the R2 dashboard, click **Manage** (next to "API Tokens" in the Account Details section)
+2. Click **Create Account API Token**
+3. Configure the token:
+   - **Token name**: Give it a descriptive name (e.g., "Yugen Dev")
+   - **Permissions**: Select **Object Read & Write**
+   - **Specify bucket(s)**: Choose **Apply to specific buckets only**
+   - Select your bucket from the dropdown (e.g., `your-bucket-name-dev`)
+   - **TTL**: Leave as **Forever** (or set expiration if preferred)
+4. Click **Create Account API Token**
+5. Copy these values immediately (Secret Access Key is only shown once!):
+   - **Access Key ID** → `R2_ACCESS_KEY_ID`
+   - **Secret Access Key** → `R2_SECRET_ACCESS_KEY`
+6. Get your **Account ID** from the R2 dashboard (shown in the Account Details section) → `R2_ACCOUNT_ID`
+
+**Set CORS Policy:**
+1. Go to Your Bucket → **Settings** → **CORS Policy**
+2. Add this policy:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3002", "https://*.ngrok.app"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Add these to your `.env.convex.dev` file as:
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET_NAME`
+
+## Configure Services
+
+<Steps>
+<Step>
+
+### Setup Convex
+
+```bash
+bun run dev:setup
+```
+
+- Follow the prompts to login to Convex and create a Cloud Deployment
+- Create new project when prompted (Cloud Deployment)
+- This creates `packages/backend/.env.local` with your dev Convex URLs
+
+<Note>
+  **If you see a 502 Bad Gateway error:** This is usually a temporary Convex API issue. Wait a few minutes and try again. Check [Convex Status](https://status.convex.dev) if the issue persists.
+</Note>
+
+After setup completes, add these to `packages/backend/.env.local`:
+```bash
+VITE_CONVEX_SITE_URL=https://your-project.convex.site
+SITE_URL=http://localhost:3002
+```
+
+**Example:** If your `CONVEX_URL` is `https://zany-turtle-95.convex.cloud`, then:
+- `VITE_CONVEX_SITE_URL` should be `https://zany-turtle-95.convex.site`
+- `SITE_URL` should be `http://localhost:3002` (web server runs on 3002, Cloudflare Workers dev server uses 3001)
+
+</Step>
+
+<Step>
+
+### Verify Environment Variables
+
+Your `.env.convex.dev` should now have all credentials:
+
+```bash
+# BetterAuth
+BETTER_AUTH_SECRET="<your-generated-secret>"
+
+# Polar.sh
+POLAR_ORGANIZATION_ID=<your-org-id>
+POLAR_ACCESS_TOKEN=polar_pat_...
+
+# Resend
+RESEND_API_KEY=re_...
+SENDER_EMAIL=onboarding@resend.dev
+COMPANY_NAME=YourCompanyName
+
+# Cloudflare R2
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_ACCOUNT_ID=...
+R2_BUCKET_NAME=your-bucket-name-dev
+
+# Site URL
+SITE_URL=http://localhost:3002
+```
+
+</Step>
+
+<Step>
+
+### Create Frontend Environment
+
+From project root:
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Update with your Convex URLs:
+```bash
+VITE_CONVEX_URL=https://your-project.convex.cloud
+VITE_CONVEX_SITE_URL=https://your-project.convex.site
+SITE_URL=http://localhost:3002
+```
+
+</Step>
+
+<Step>
+
+### Apply Environment Variables
+
+Upload all credentials to Convex:
+
+```bash
+bun run setup:convex:dev
+```
+
+This uploads your environment variables to your Convex development environment.
+
+</Step>
+
+<Step>
+
+### Login to Cloudflare
+
+From the **`apps/web/`** directory:
+```bash
+bun alchemy login
+```
+
+This will open your browser to authorize with Cloudflare. Alchemy is the IaC tool that connects to Cloudflare - you're authenticating with Cloudflare, not creating an Alchemy account.
+
+<Note>
+  Make sure you're in the `apps/web/` directory (where `alchemy.run.ts` exists).
+</Note>
+
+</Step>
+</Steps>
+
+## Start Development
+
+<Steps>
+<Step>
+
+### Start Cloudflare Workers Dev Server
+
+**Important:** Start this first to create the required configuration files.
+
+From the **`apps/web/`** directory:
+```bash
+bun alchemy dev
+```
+
+<Note>
+  Make sure you're in the `apps/web/` directory (where `alchemy.run.ts` exists).
+</Note>
+
+Wait for this to start successfully (runs on `http://localhost:3001`).
+
+</Step>
+
+<Step>
+
+### Start All Services
+
+In a new terminal, from project root:
+```bash
+bun run dev
+```
+
+This uses TurboRepo to start the web server, Convex backend, and Fumadocs.
+
+<Note>
+  **Ports:** Cloudflare Workers dev server runs on `http://localhost:3001`, and the web server runs on `http://localhost:3002` (since 3001 is already in use).
+</Note>
+
+Your app is now running at **`http://localhost:3002`** ✅
+
+</Step>
+</Steps>
+
+## Verify Setup
+
+After starting the development servers:
+
+1. **Visit the App**
+   - Open `http://localhost:3002` in your browser
+   - You should see the default Yugen landing page
+
+![Yugen Landing Page](/yugen-landing.png)
+
+2. **Test Authentication**
+   - Click sign up button
+   - Create an account with email/password
+   - Should redirect after successful authentication
+
+<Note>
+  **Troubleshooting "Invalid Origin" Error:** If you see an "invalid origin" error when signing up or signing in, restart both dev servers (`bun alchemy dev` and `bun run dev`). Also verify all environment variables are in the correct files (`.env.convex.dev` (i.e. in convex), `apps/web/.env.local`, `packages/backend/.env.local`).
+</Note>
+
+3. **Check Convex Dashboard**
+   - Go to Convex dashboard → Data → Tables
+   - Click on `users` table
+   - Verify new user appears ✅
+
+## Testing Webhooks Locally (Optional)
+
+To test Polar.sh webhooks (payments only) or email sending locally, you'll need ngrok:
+
+<Steps>
+<Step>
+
+### Install ngrok
+
+```bash
+brew install ngrok
+```
+
+</Step>
+
+<Step>
+
+### Start ngrok
+
+```bash
+ngrok http 3002
+```
+
+<Note>
+  Use port 3002 (web server), not 3001 (Cloudflare Workers dev server). You may need to buy an ngrok pro plan because they limit usage for free users.
+</Note>
+
+Copy the `https://` URL.
+
+</Step>
+
+<Step>
+
+### Update Environment Files
+
+Update `.env.convex.dev`, `packages/backend/.env.local`, and `apps/web/.env.local`:
+```bash
+SITE_URL=https://abc123.ngrok.app
+```
+
+</Step>
+
+<Step>
+
+### Update vite.config.ts
+
+```typescript
+server: {
+  allowedHosts: ["abc123.ngrok.app"],
+}
+```
+
+</Step>
+
+<Step>
+
+### Apply & Restart
+
+```bash
+bun run setup:convex:dev
+
+# Restart both terminals
+bun run dev  # From root
+bun alchemy dev  # From apps/web/
+```
+
+</Step>
+</Steps>
+
+## Next Steps
+
+We recommend you deploy immediately to production. Follow the Production Deployment guide to get your app live and then you can start iterating.
+
+<Cards>
+  <Card
+    title="Production Deployment"
+    href="/docs/setup/3-production-deployment"
+    description="Deploy your Application to Production"
+  />
+  <Card
+    title="Keeping Up to Date"
+    href="/docs/setup/8-keeping-up-to-date"
+    description="Stay updated with critical fixes and security patches"
+  />
+</Cards>
+

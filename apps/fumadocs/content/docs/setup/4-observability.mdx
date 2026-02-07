@@ -1,0 +1,111 @@
+---
+title: 'Observability'
+description: Monitor errors and uptime with Sentry and OpenStatus
+icon: Activity
+---
+
+<Note>
+  Last updated on: November 5, 2025
+</Note>
+
+<Note>
+  **Optional:** Skip if you don't need monitoring yet.
+</Note>
+
+## Sentry (Error Tracking)
+
+<Note>
+  Requires Convex Pro plan.
+</Note>
+
+<Steps>
+<Step>
+
+### Create Sentry Project
+
+1. Sign up at [sentry.io](https://sentry.io)
+2. Create new project → Select **Node.js**
+3. Copy your **DSN**
+
+</Step>
+
+<Step>
+
+### Upgrade Convex to Pro
+
+Convex Dashboard → Settings → Billing → Upgrade to Pro
+
+</Step>
+
+<Step>
+
+### Configure Integration
+
+1. Convex Dashboard → Settings → Integrations
+2. Click **Sentry** card
+3. Paste your DSN
+4. (Optional) Add custom tags: `version: "1.0.0"`
+5. Click **Save**
+
+</Step>
+
+<Step>
+
+### Test Integration
+
+Trigger a test error in your code, check Sentry dashboard after 1-2 minutes.
+
+</Step>
+</Steps>
+
+### Auto Tags
+
+Convex automatically adds these tags to every error:
+- `func` - Function name (e.g., `"messages:send"`)
+- `func_type` - Type (`query`, `mutation`, `action`)
+- `request_id` - For correlation with Convex logs
+- `environment` - `prod`, `dev`, or `preview`
+- `user` - Auth user ID (if authenticated)
+
+## OpenStatus (Uptime Monitoring)
+
+<Steps>
+<Step>
+
+### Setup
+
+1. Sign up at [openstatus.dev](https://openstatus.dev)
+2. Add your website URL
+3. Done! ✅
+
+</Step>
+</Steps>
+
+You'll get email alerts if your site goes down.
+
+<Note>
+  Upgrade to Pro for SMS alerts.
+</Note>
+
+## Next Steps
+
+Now that you have monitoring set up, you can also add user behavior analytics:
+
+<Cards>
+  <Card
+    title="Analytics"
+    href="/docs/setup/5-analytics"
+    description="Track user behavior and sessions with HumanBehavior"
+  />
+  <Card
+    title="Solo Workflow"
+    href="/docs/setup/6-solo-workflow"
+    description="Development workflow for solo founders"
+  />
+  <Card
+    title="Team Workflow"
+    href="/docs/setup/7-team-workflow"
+    description="Collaborative development workflow for teams"
+  />
+</Cards>
+

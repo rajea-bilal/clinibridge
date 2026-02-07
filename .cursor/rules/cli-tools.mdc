@@ -1,0 +1,172 @@
+---
+alwaysApply: true
+---
+# Modern CLI Tools - Agent Rules
+
+Always use these modern CLI tools instead of their default Unix equivalents for better performance, user experience, and functionality.
+
+## File Finding and Searching
+
+### Use `fd` instead of `find`
+- **Command**: `fd` (fd-find)
+- **Why**: Faster, simpler syntax, respects `.gitignore` by default
+- **Examples**:
+  - `fd src` - Find files/directories named "src"
+  - `fd -e ts foo` - Find TypeScript files containing "foo" in name
+  - `fd -t f "\.ts$"` - Find all TypeScript files
+- **When to use**: Any file finding operations
+
+### Use `ripgrep` (`rg`) instead of `grep`, `ack`, or `ag`
+- **Command**: `rg` (ripgrep)
+- **Why**: Much faster, respects `.gitignore` by default, great defaults
+- **Examples**:
+  - `rg "TODO"` - Search for "TODO" in all files
+  - `rg -n --glob '!dist' "pattern"` - Search with line numbers, excluding dist
+  - `rg -t ts "function"` - Search only in TypeScript files
+- **When to use**: Any text search operations in code/files
+
+### Use `ast-grep` (`sg`) for AST-aware code search
+- **Command**: `sg` (ast-grep)
+- **Why**: Searches based on syntax, not just text - enables precise refactors
+- **Examples**:
+  - `sg -p 'if ($A) { $B }'` - Find if statements matching pattern
+  - `sg -p 'function $NAME($PARAMS) { $BODY }'` - Find function definitions
+- **When to use**: Syntax-aware code searches and refactoring operations
+
+## File Listing and Navigation
+
+### Use `eza` instead of `ls`
+- **Command**: `eza`
+- **Why**: Better defaults, icons, tree views, Git integration, more readable
+- **Examples**:
+  - `eza -l --git` - Long format with Git status
+  - `eza -T` - Tree view
+  - `eza -la` - All files with details
+- **When to use**: Any directory listing operations
+
+### Use `zoxide` (`z`) instead of `cd` when navigating known paths
+- **Command**: `z` (via zoxide)
+- **Why**: Smart directory jumping based on frecency (frequency + recency)
+- **Examples**:
+  - `z foo` - Jump to most frequently/recently used directory matching "foo"
+  - `zi my/project` - Interactive mode to select from matches
+- **When to use**: Navigating to frequently accessed directories
+- **Note**: Falls back to `cd` if zoxide isn't initialized in shell
+
+## File Viewing
+
+### Use `bat` instead of `cat`
+- **Command**: `bat`
+- **Why**: Syntax highlighting, line numbers, Git integration, paging
+- **Examples**:
+  - `bat file.ts` - View file with syntax highlighting
+  - `bat -p README.md` - Plain mode (no paging, for scripts)
+  - `bat --line-range 10:20 file.ts` - View specific line range
+- **When to use**: Any file viewing operations
+
+## JSON Processing
+
+### Use `jq` for JSON processing
+- **Command**: `jq`
+- **Why**: Powerful JSON querying and transformation
+- **Examples**:
+  - `jq '.items[].id' resp.json` - Extract IDs from items array
+  - `jq '.user.name' data.json` - Get nested property
+  - `cat resp.json | jq '.'` - Pretty print JSON
+- **When to use**: Any JSON parsing, querying, or transformation
+
+## Interactive Tools
+
+### Use `fzf` for fuzzy finding
+- **Command**: `fzf`
+- **Why**: Fast, intuitive fuzzy finder
+- **Examples**:
+  - `fzf` - Interactive fuzzy finder
+  - `history | fzf` - Fuzzy search through history
+  - `rg foo | fzf` - Pipe ripgrep results to fuzzy finder
+- **When to use**: Interactive selection from lists
+
+## HTTP Requests
+
+### Use `httpie` (`http`) instead of `curl` for API interactions
+- **Command**: `http` (httpie)
+- **Why**: Cleaner syntax, colors, headers, pretty output by default
+- **Examples**:
+  - `http GET api/foo` - GET request
+  - `http POST api/bar key=value` - POST request with data
+  - `http PUT api/item id=123 name="Test"` - PUT request
+- **When to use**: HTTP API calls, especially JSON APIs
+
+## Git Operations
+
+### Use `delta` for Git diffs
+- **Command**: `delta` (git-delta)
+- **Why**: Side-by-side, syntax-colored diffs
+- **Examples**:
+  - `git -c core.pager=delta diff` - View diff with delta
+  - Configure as git pager: `git config --global core.pager delta`
+- **When to use**: Viewing Git diffs
+
+## Summary Table
+
+| Default Tool | Modern Replacement | Command | Use Case |
+|-------------|-------------------|---------|----------|
+| `find` | `fd` | `fd` | File finding |
+| `grep` | `ripgrep` | `rg` | Text search |
+| N/A | `ast-grep` | `sg` | AST-aware search |
+| `ls` | `eza` | `eza` | Directory listing |
+| `cd` | `zoxide` | `z` | Smart navigation |
+| `cat` | `bat` | `bat` | File viewing |
+| `curl` | `httpie` | `http` | HTTP requests |
+| `git diff` | `delta` | `delta` | Git diffs |
+| N/A | `jq` | `jq` | JSON processing |
+| N/A | `fzf` | `fzf` | Fuzzy finding |
+
+## Implementation Rules
+
+1. **Always prefer modern tools**: When a task can be done with both a default tool and a modern replacement, use the modern tool.
+
+2. **Fallback behavior**: If a modern tool isn't available or fails, document the fallback but still prefer the modern tool.
+
+3. **Performance**: These tools are significantly faster, so use them even for simple operations.
+
+4. **Default behavior**: These tools have better defaults (e.g., respecting `.gitignore`), so they're safer to use.
+
+5. **Error handling**: If a modern tool fails, check if it's installed before falling back to defaults.
+
+## Command Examples for Common Tasks
+
+### Find all TypeScript files
+```bash
+fd -e ts
+```
+
+### Search for a pattern in code
+```bash
+rg "pattern" --type ts
+```
+
+### View a file with syntax highlighting
+```bash
+bat src/index.ts
+```
+
+### List files with Git status
+```bash
+eza -l --git
+```
+
+### Make an API request
+```bash
+http GET https://api.example.com/users
+```
+
+### Process JSON response
+```bash
+http GET https://api.example.com/users | jq '.[] | .name'
+```
+
+### View Git diff with syntax highlighting
+```bash
+git -c core.pager=delta diff
+```

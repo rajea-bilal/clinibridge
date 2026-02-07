@@ -1,0 +1,18 @@
+{
+  "title": "Project Setup",
+  "root": true,
+  "pages": [
+    "1-ramp-up",
+    "2-initial-setup",
+    "3-production-deployment",
+    "4-observability",
+    "5-analytics",
+    "---Workflows---",
+    "6-solo-workflow",
+    "7-team-workflow",
+    "8-keeping-up-to-date",
+    "---Developer Guides---",
+    "guides/ruler",
+    "guides/ultracite"
+  ]
+}

@@ -1,0 +1,377 @@
+---
+title: 'Production Deployment'
+description: Deploy your app to Production
+icon: Cloud
+---
+
+<Note>
+  Last updated on: November 23, 2025
+</Note>
+
+Complete guide for deploying your app to production:
+- Frontend on Cloudflare Workers
+- Backend on Convex
+- Blob Storage on Cloudflare R2 (optional)
+
+## Configure Production Services
+
+**Copy Production Template**
+
+```bash
+cp .env.convex.prod.example .env.convex.prod
+```
+
+### Authentication
+
+**1. Generate Production Auth Secret**
+
+```bash
+openssl rand -base64 32
+```
+
+**2. Add to `.env.convex.prod` (must be **different** from dev)**
+```bash
+BETTER_AUTH_SECRET="<paste-production-secret>"
+```
+
+<Warning>
+  **Important:** Use a different secret than your development environment. Never reuse dev secrets in production.
+</Warning>
+
+<Note>
+  **Environment Variables**: Core variables (`VITE_CONVEX_URL`, `VITE_CONVEX_SITE_URL`, `SITE_URL`) are automatically managed by the deploy script. For custom variables, see the [Custom Environment Variables](#custom-environment-variables) section at the bottom of this guide.
+</Note>
+
+---
+
+## Service-Specific Setup
+
+### Authentication
+
+**Already configured** via `BETTER_AUTH_SECRET` in `.env.convex.prod`.
+
+### Payments (SaaS Mode Only)
+
+<Note>
+  **Skip this entire section if using Simple Mode!**
+  
+  Check `config.ts` in your project root:
+  - If `payments.trackInConvex: false` (Simple Mode) - Skip payments setup entirely
+  - If `payments.trackInConvex: true` (SaaS Mode) - Follow all steps below
+  
+  **Simple Mode** = Direct Polar checkout links, no database tracking, no webhooks needed
+  
+  **SaaS Mode** = Full integration with user accounts, subscription tracking, requires webhooks
+</Note>
+
+**1. Create Production Account**
+
+<Cards>
+  <Card
+    title="Polar.sh"
+    href="https://polar.sh"
+    description="Create your production account (not sandbox)"
+  />
+</Cards>
+
+**2. Create Products**
+
+Create the same products as in sandbox, but for production environment.
+
+**3. Get Production Credentials**
+
+- **`POLAR_ACCESS_TOKEN`**: Settings → General → Developers → New Token (All scopes, no expiration)
+- **`POLAR_ORGANIZATION_ID`**: Settings → Profile → Copy the `Identifier`
+- **`POLAR_SERVER`**: Set to `production`
+
+**4. Add to Environment**
+
+Add to `.env.convex.prod`:
+```bash
+POLAR_ACCESS_TOKEN=polar_at_prod_...
+POLAR_ORGANIZATION_ID=your_prod_org_id
+POLAR_SERVER=production
+POLAR_WEBHOOK_SECRET=  # Get after first deploy
+```
+
+**5. Configure Webhooks**
+
+After your first deployment:
+
+1. Get your production Convex site URL from dashboard
+2. Navigate to Polar Dashboard → Settings → Webhooks
+3. Click **Add endpoint**:
+   - URL: `https://YOUR-PROD.convex.site/payments/webhook`
+   - Format: **Raw** (not JSON)
+   - Select all events
+4. Copy the **Signing Secret**
+5. Add to `.env.convex.prod`:
+   ```bash
+   POLAR_WEBHOOK_SECRET=polar_whs_...
+   ```
+6. Re-apply: `bun run setup:convex:prod`
+
+<Note>
+  Use `.convex.site` URL for webhooks, not your Workers URL or custom domain!
+</Note>
+
+### Prevent Chargebacks (Optional but Recommended)
+
+As you scale, consider using a tool to monitor fraudulent activity and prevent chargebacks. This helps protect your Stripe account from getting banned due to too many chargebacks.
+
+<Cards>
+  <Card
+    href="https://byedispute.com/"
+    title="ByeDispute"
+    description="Monitor fraudulent activity to prevent chargebacks from stolen credit cards, unusual payment activity, or spammers. Helps prevent your Stripe account from getting banned."
+  />
+</Cards>
+
+### Email
+
+**1. Create Production API Key**
+
+Use the same Resend account, but create a different API key for production.
+
+<Cards>
+  <Card
+    title="Resend Dashboard"
+    href="https://resend.com"
+    description="Create production API key"
+  />
+</Cards>
+
+**2. Add to Environment**
+
+Add to `.env.convex.prod`:
+```bash
+RESEND_API_KEY=re_prod_...
+SENDER_EMAIL=hello@yourdomain.com  # Must be from verified domain
+COMPANY_NAME=YourCompanyName
+```
+
+### Storage
+
+**1. Create Production Bucket**
+
+Create a new bucket: `your-bucket-name-prod`
+
+**2. Set CORS policy for Production**
+
+Configure CORS for your production domain:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://yourdomain.com"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+**3. Add Production Credentials**
+
+Add to `.env.convex.prod`:
+```bash
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_ACCOUNT_ID=...
+R2_BUCKET_NAME=your-bucket-name-prod
+```
+
+<Note>
+  The `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` are the same as the ones you used previously for development.
+</Note>
+
+### Update Site URL
+
+Edit `.env.convex.prod`:
+```bash
+SITE_URL=https://yourdomain.com
+```
+
+## Deploy to Production
+
+<Steps>
+<Step>
+
+**Apply Production Variables**
+
+```bash
+bun run setup:convex:prod
+```
+
+This uploads all your credentials from `.env.convex.prod` to Convex for production.
+
+</Step>
+
+<Step>
+
+**Deploy to Cloudflare**
+
+```bash
+bun run deploy
+```
+
+This command:
+- ✅ Deploys your TanStack Start Frontend to Cloudflare Workers
+- ✅ Deploys your Convex Backend to Convex
+- ✅ Creates a .env file in the web directory with the production URLs
+
+</Step>
+
+<Step>
+**Update the SITE_URL in the .env file with your custom domain.**
+  
+```bash
+# Production Convex URLs (auto-generated by deploy.sh)
+VITE_CONVEX_URL=https://grateful-bird-17.convex.cloud
+VITE_CONVEX_SITE_URL=https://grateful-bird-17.convex.site
+SITE_URL=https://[your-unique-cloudflare-url].workers.dev
+```
+
+Then re-deploy your app to Cloudflare.
+
+```bash
+bun run deploy
+```
+
+The logs will now say:
+
+```
+...
+✓ built in 3.53s
+[updated]   web-build Updated Resource
+[updating]  web Updating Resource...
+[skipped]   web > url Skipped Resource (no changes)
+[updated]   web Updated Resource
+Web    -> https://[your-unique-cloudflare-url].workers.dev
+💾 Saving production URLs to .env (preserving custom env vars)...
+
+✅ Deployment complete!
+  Production URLs saved to apps/web/.env
+  SITE_URL: https://[your-custom-domain]
+
+🔄 Updating Convex SITE_URL to match .env...
+✔ Successfully set SITE_URL
+✅ Convex SITE_URL updated to: https://[your-custom-domain]
+```
+</Step>
+
+</Steps>
+
+## Verify Deployment
+
+After completing deployment:
+
+1. **Visit Production URL**
+   - Check your Workers URL or custom domain
+   - Verify app loads correctly
+
+2. **Test Authentication**
+   - Sign up with a new account
+   - Test sign in flow
+   - Verify user data in Convex production database
+
+3. **Test Payments** (if configured)
+   - Complete a test purchase
+   - Check payment status in dashboard
+   - Verify webhook events received
+
+4. **Monitor Logs**
+   - Check Convex Dashboard → Logs for any errors
+   - Monitor Cloudflare Workers dashboard
+
+## Custom Environment Variables
+
+When you need to add custom environment variables later, follow these steps:
+
+<Warning>
+  **Important**: The deploy script uses values from `apps/web/.env`, **not** `apps/web/.env.local`. If you have the same variable in both files, the `.env` value will be used during deployment.
+</Warning>
+
+<Steps>
+  <Step>
+    **Add variable name to `apps/web/deploy.sh`**:
+    
+    Edit the `CUSTOM_ENV_VARS` array:
+    
+```bash
+CUSTOM_ENV_VARS=(
+  "VITE_TEST_VAR"  # Add your variable here
+)
+```
+  </Step>
+  
+  <Step>
+    **Add binding to `apps/web/alchemy.run.ts`**:
+    
+    Add to the `bindings` object:
+    
+```typescript
+bindings: {
+  // ... existing bindings ...
+  VITE_TEST_VAR: process.env.VITE_TEST_VAR || "",
+}
+```
+  </Step>
+  
+  <Step>
+    **Add value to `apps/web/.env`**:
+    
+```bash
+VITE_TEST_VAR=test-value-123
+```
+  </Step>
+  
+  <Step>
+    **Add to Cloudflare Dashboard**:
+    
+    Go to Workers & Pages → Your Worker → Settings → Variables and Secrets → Add variable
+  </Step>
+  
+  <Step>
+    **Deploy**:
+    
+```bash
+bun run deploy
+```
+  </Step>
+</Steps>
+
+## Useful Commands
+
+```bash
+# Deploy to production
+bun run deploy
+
+# Update production environment variables
+bun run setup:convex:prod
+
+# View production logs
+cd packages/backend
+bunx convex logs --prod --watch
+
+# Open Convex dashboard
+bunx convex dashboard
+```
+
+## Next Steps
+
+With your app deployed, consider adding monitoring and observability:
+
+<Cards>
+  <Card
+    title="Observability Setup"
+    href="/docs/setup/4-observability"
+    description="Add error tracking and uptime monitoring"
+  />
+  <Card
+    title="Keeping Up to Date"
+    href="/docs/setup/8-keeping-up-to-date"
+    description="Stay updated with critical fixes and security patches"
+  />
+</Cards>

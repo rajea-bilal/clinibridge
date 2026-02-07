@@ -1,0 +1,8 @@
+
+.env.local
+node_modules
+
+# Compiled TypeScript files (Convex compiles automatically)
+convex/*.js
+convex/*.js.map
+!convex/*.config.js

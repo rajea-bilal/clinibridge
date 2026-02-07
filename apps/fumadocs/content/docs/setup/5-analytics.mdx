@@ -1,0 +1,372 @@
+---
+title: 'Analytics'
+description: Revenue-first analytics with DataFast and session recording with HumanBehavior
+icon: ChartBar
+---
+
+<Note>
+  Last updated on: November 23, 2025
+</Note>
+
+<Note>
+  **Optional:** Skip if you don't need analytics tracking yet.
+</Note>
+
+## DataFast (Revenue-First Analytics)
+
+DataFast helps you discover which marketing channels drive paying customers and where revenue is lost. It provides revenue attribution, goal tracking, and funnel analysis to help you make data-driven growth decisions.
+
+<Steps>
+<Step>
+
+### Create DataFast Account
+
+1. Sign up at [datafa.st](https://datafa.st)
+2. Create a new website/project
+3. Copy your **Website ID** from the setup instructions
+
+</Step>
+
+<Step>
+
+### Add DataFast Script
+
+Add the DataFast script to your root component (`apps/web/src/routes/__root.tsx`):
+
+**In the `head()` function, add to the `scripts` array:**
+
+```tsx
+scripts: [
+  // ... existing scripts
+  {
+    defer: true,
+    src: "https://cdn.datafa.st/script.js",
+    "data-website-id": "your-website-id-here",
+  },
+],
+```
+
+**Or add it directly in the `<head>` section:**
+
+```tsx
+<script
+  defer
+  src="https://cdn.datafa.st/script.js"
+  data-website-id="your-website-id-here"
+/>
+```
+
+</Step>
+
+<Step>
+
+### Connect Revenue Data (Optional)
+
+To track revenue attribution, connect your payment processor:
+
+1. Go to your DataFast dashboard → Settings → Revenue Sources
+2. Connect Stripe, LemonSqueezy, or Polar
+3. DataFast will automatically attribute revenue to marketing channels
+
+</Step>
+
+<Step>
+
+### Verify Setup
+
+1. Start your dev server: `bun run dev`
+2. Navigate to your app and interact with it
+3. Check your DataFast dashboard - you should see pageviews and events appearing within a few minutes
+
+</Step>
+</Steps>
+
+## HumanBehavior (Session Recording & Analytics)
+
+HumanBehavior provides session replay, user behavior tracking, and analytics to help you understand how users interact with your application.
+
+You can ask questions about your users and their behavior to help you understand where they are leaving, upgrading, or staying, as well any errors that occur. HumanBehavior will automtically create issue tasks in your HB Dashboard if it detects that a user is having a problem.
+
+<Steps>
+<Step>
+
+### Create HumanBehavior Account
+
+1. Sign up at [humanbehavior.io](https://humanbehavior.io)
+2. Create a new project
+3. Copy your **API Key** (starts with `hb_`)
+
+</Step>
+
+<Step>
+
+### Add Environment Variable
+
+Add your HumanBehavior API key to your environment files:
+
+**1. Local Development (`apps/web/.env`):**
+
+```bash
+VITE_HUMANBEHAVIOR_API_KEY=your-api-key-here
+```
+
+**2. Production Setup:**
+
+For production deployment, you need to configure the environment variable in multiple places:
+
+**a. Add to `apps/web/deploy.sh`:**
+
+Edit the `CUSTOM_ENV_VARS` array in `apps/web/deploy.sh`:
+
+```bash
+CUSTOM_ENV_VARS=(
+  "VITE_TEST_VAR"  # Existing variable
+  "VITE_HUMANBEHAVIOR_API_KEY"  # Add this line
+)
+```
+
+**b. Add to `apps/web/.env`:**
+
+```bash
+VITE_HUMANBEHAVIOR_API_KEY=your-api-key-here
+```
+
+**c. Add to Cloudflare Workers Dashboard:**
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → Workers & Pages
+2. Select your worker
+3. Go to **Settings** → **Variables and Secrets**
+4. Click **Add variable**
+5. Name: `VITE_HUMANBEHAVIOR_API_KEY`
+6. Value: Your API key (starts with `hb_`)
+7. Click **Save**
+
+<Note>
+  The binding in `apps/web/alchemy.run.ts` is already configured. You just need to add the variable to Cloudflare Workers dashboard and `deploy.sh` as shown above.
+</Note>
+
+<Note>
+  For more details on adding custom environment variables, see the [Custom Environment Variables section](/docs/setup/3-production-deployment#custom-environment-variables) in the Production Deployment guide.
+</Note>
+
+</Step>
+
+<Step>
+
+### Verify Setup
+
+The HumanBehavior SDK is already integrated in your root component (`apps/web/src/routes/__root.tsx`). Once you add your API key:
+
+1. Start your dev server: `bun run dev`
+2. Navigate to your app
+3. Check the HumanBehavior dashboard - you should see sessions appearing within a few minutes
+
+</Step>
+</Steps>
+
+## DataFast Usage
+
+### Automatic Tracking
+
+DataFast automatically tracks:
+- ✅ Page views and navigation
+- ✅ Referrer sources and UTM parameters
+- ✅ Geographic data
+- ✅ Device and browser information
+- ✅ Real-time visitor activity
+
+### Revenue Attribution
+
+Track which marketing channels drive revenue:
+
+1. Set up goals in your DataFast dashboard (e.g., "Signup", "Purchase")
+2. Connect your payment processor for automatic revenue tracking
+3. View revenue per visitor, per channel, and per country in your dashboard
+
+### Custom Events
+
+Track custom events for conversions:
+
+```tsx
+// Track a signup event
+window.datafast?.track('signup', {
+  plan: 'pro',
+  source: 'landing-page'
+});
+
+// Track a purchase event with revenue
+window.datafast?.track('purchase', {
+  amount: 29.99,
+  currency: 'USD',
+  product: 'Pro Plan'
+});
+```
+
+### Goals and Funnels
+
+Set up goals in your DataFast dashboard to track:
+- Signups
+- Trial starts
+- Purchases
+- Feature usage
+- Any custom conversion event
+
+View the full user journey from first visit to conversion to understand what drives results.
+
+## HumanBehavior Usage
+
+### Automatic Tracking
+
+HumanBehavior automatically tracks:
+- ✅ Page views and navigation
+- ✅ User interactions (clicks, scrolls, form inputs)
+- ✅ Console events and errors
+- ✅ Network requests
+
+No additional code needed - it works out of the box!
+
+### Custom Events
+
+Track custom events in your components:
+
+```tsx
+import { useHumanBehavior } from 'humanbehavior-js/react';
+
+function MyComponent() {
+  const tracker = useHumanBehavior();
+  
+  const handleClick = () => {
+    tracker.customEvent('button_clicked', {
+      componentName: 'MyComponent',
+      buttonId: 'submit-btn'
+    });
+  };
+  
+  return (
+    <button onClick={handleClick}>
+      Submit
+    </button>
+  );
+}
+```
+
+### Data Redaction
+
+Configure data redaction for sensitive information:
+
+```tsx
+import { HumanBehaviorProvider } from 'humanbehavior-js/react';
+
+function App() {
+  return (
+    <HumanBehaviorProvider 
+      apiKey={import.meta.env.VITE_HUMANBEHAVIOR_API_KEY}
+      options={{
+        redactionStrategy: { 
+          mode: 'visibility-first' as const
+        }
+      }}
+    >
+      {/* Your app */}
+    </HumanBehaviorProvider>
+  );
+}
+```
+
+### Runtime Redaction Control
+
+Dynamically control which fields are redacted:
+
+```tsx
+import { useHumanBehavior } from 'humanbehavior-js/react';
+
+function MyComponent() {
+  const tracker = useHumanBehavior();
+  
+  const handleUnredactField = () => {
+    tracker.setUnredactedFields(['#new-public-field']);
+  };
+  
+  return (
+    <button onClick={handleUnredactField}>
+      Unredact New Field
+    </button>
+  );
+}
+```
+
+## Using DataFast + HumanBehavior Together
+
+DataFast and HumanBehavior complement each other perfectly:
+
+- **DataFast** shows you **which marketing channels drive revenue** and where money is being lost
+- **HumanBehavior** shows you **why users churn** and what frustrates them
+
+Together, you'll understand:
+- ✅ Which channels bring paying customers (DataFast)
+- ✅ Why users from those channels convert or churn (HumanBehavior)
+- ✅ What's frustrating users and causing revenue loss (HumanBehavior)
+- ✅ How to optimize your funnel based on behavioral insights (Both)
+
+### Example Workflow
+
+1. **DataFast** identifies that Twitter drives 40% of revenue but has a low conversion rate
+2. **HumanBehavior** reveals that Twitter users struggle with the checkout form
+3. Fix the checkout form based on session replays
+4. **DataFast** confirms the fix increased Twitter conversion rate
+
+## Features
+
+### DataFast Features
+
+- ✅ Revenue attribution by marketing channel
+- ✅ Real-time visitor tracking
+- ✅ Goal and funnel tracking
+- ✅ Custom event tracking
+- ✅ Geographic and device analytics
+- ✅ Integration with Stripe, LemonSqueezy, and Polar
+
+### HumanBehavior Features
+
+- ✅ Automatic page view tracking
+- ✅ React hooks for custom events
+- ✅ TypeScript support included
+- ✅ Optimized for React 18+
+- ✅ Flexible data redaction with privacy-first and visibility-first modes
+- ✅ Session replay for debugging user issues
+- ✅ Heatmaps and user journey analysis
+
+## Troubleshooting
+
+### DataFast Issues
+
+- **No pageviews appearing?** Check browser console for errors and verify your website ID is correct
+- **Revenue not tracking?** Make sure you've connected your payment processor in DataFast settings
+- **Script not loading?** Verify the script is added correctly in `__root.tsx` and check network tab for script.js requests
+
+### HumanBehavior Issues
+
+- **No sessions appearing?** Check browser console for errors and verify your API key is correct
+- **Environment variable not working locally?** Make sure you've restarted your dev server after adding the variable to `apps/web/.env`
+- **Production not tracking?** 
+  - Verify `VITE_HUMANBEHAVIOR_API_KEY` is added to the `CUSTOM_ENV_VARS` array in `apps/web/deploy.sh`
+  - Verify the environment variable is set in Cloudflare Workers dashboard (Settings → Variables and Secrets)
+  - Make sure you've deployed after adding the variable: `bun run deploy`
+
+## Next Steps
+
+Now that you have analytics set up, check out the development workflows:
+
+<Cards>
+  <Card
+    title="Solo Workflow"
+    href="/docs/setup/6-solo-workflow"
+    description="Development workflow for solo founders"
+  />
+  <Card
+    title="Team Workflow"
+    href="/docs/setup/7-team-workflow"
+    description="Collaborative development workflow for teams"
+  />
+</Cards>
+

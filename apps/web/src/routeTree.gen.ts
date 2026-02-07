@@ -18,6 +18,7 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as ResultsIdRouteImport } from './routes/results.$id'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AdminWaitlistRouteImport } from './routes/admin/waitlist'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -67,6 +68,11 @@ const ResultsIdRoute = ResultsIdRouteImport.update({
   path: '/results/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/todos': typeof TodosRoute
   '/admin/waitlist': typeof AdminWaitlistRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/search': typeof ApiSearchRoute
   '/results/$id': typeof ResultsIdRoute
   '/sitemap/xml': typeof SitemapXmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/todos': typeof TodosRoute
   '/admin/waitlist': typeof AdminWaitlistRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/search': typeof ApiSearchRoute
   '/results/$id': typeof ResultsIdRoute
   '/sitemap/xml': typeof SitemapXmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/todos': typeof TodosRoute
   '/admin/waitlist': typeof AdminWaitlistRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/search': typeof ApiSearchRoute
   '/results/$id': typeof ResultsIdRoute
   '/sitemap/xml': typeof SitemapXmlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/todos'
     | '/admin/waitlist'
     | '/api/chat'
+    | '/api/search'
     | '/results/$id'
     | '/sitemap/xml'
     | '/api/auth/$'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/todos'
     | '/admin/waitlist'
     | '/api/chat'
+    | '/api/search'
     | '/results/$id'
     | '/sitemap/xml'
     | '/api/auth/$'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/todos'
     | '/admin/waitlist'
     | '/api/chat'
+    | '/api/search'
     | '/results/$id'
     | '/sitemap/xml'
     | '/api/auth/$'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   TodosRoute: typeof TodosRoute
   AdminWaitlistRoute: typeof AdminWaitlistRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiSearchRoute: typeof ApiSearchRoute
   ResultsIdRoute: typeof ResultsIdRoute
   SitemapXmlRoute: typeof SitemapXmlRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResultsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   TodosRoute: TodosRoute,
   AdminWaitlistRoute: AdminWaitlistRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiSearchRoute: ApiSearchRoute,
   ResultsIdRoute: ResultsIdRoute,
   SitemapXmlRoute: SitemapXmlRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

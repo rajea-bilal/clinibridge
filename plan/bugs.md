@@ -12,13 +12,17 @@ isProject: false
 
 ## Refinements / Improvements
 
-### Trial cards show unfiltered results — no scoring reaches the UI (fixed)
+### Trial cards showed unfiltered results — scoring never reached the UI (fixed)
 
-**The problem**: The flow is: user types → AI asks follow-ups → AI calls `searchTrials` tool → tool fetches from ClinicalTrials.gov → raw trials come back → tool returns them → cards render them. Nobody scores the trials between fetching and displaying. The system prompt tells the AI to score trials in its *text reply*, but that scoring only lives in the chat paragraph — the actual trial objects the cards use still have `matchScore: 0` and no `matchLabel`. The cards can't read the AI's written opinion.
+**Problem**: Raw trials from ClinicalTrials.gov were returned directly to the UI with no scoring. The AI's text might say "this doesn't fit your age" but the cards had no way to read that — `matchScore` was always 0, no badges, no filtering.
 
-So even though the AI might say "trial #1 doesn't fit your age," the card for that trial still shows up with no badge, no filtering, nothing. The UI and the AI text are disconnected.
+**Fix**: Added a second AI call (`generateObject`) inside the tool execute that scores each trial against the patient profile before returning. Cards now get real `matchLabel`, `matchScore`, and `matchReason` data.
 
-**The fix**: Add a second AI call *inside* the tool's `execute` function, between getting the raw trials and returning them. This call takes the raw trials + patient profile, uses structured JSON output to score each trial (`matchLabel`, `matchReason`, `matchScore`), and merges the scores into the trial objects. The tool then returns already-scored trials. Now the cards have real data for badges and the `TrialCardsFromChat` component can filter/sort by `matchScore`.
+### Form path (Path B) had no scoring at all (fixed)
+
+**Problem**: The form search at `/find` called `fetchTrials()` directly from the browser — bypassing any server-side scoring. All 9+ raw trials showed up unfiltered with no badges, even though the chat path was scoring correctly.
+
+**Fix**: Created a server API route (`/api/search`) that does fetch + score using the same shared `scoreTrials()` function as the chat path. Updated `find.tsx` to call this route. Updated `TrialResultsList` to filter out "Unlikely" trials, sort by score, and cap at 4 visible with "Show more". Both paths now use identical scoring.
 
 ## Closed
 

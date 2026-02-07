@@ -15,6 +15,7 @@ isProject: false
 - [x] feature-landing-and-routing
 - [x] dev-environment-setup
 - [x] refinement-ai-scoring-and-filtering
+- [x] refinement-form-scoring-parity
 
 ## Notes
 
@@ -69,14 +70,19 @@ isProject: false
 
 ### refinement-ai-scoring-and-filtering (completed)
 
-- **Rewrote system prompt** (`aiPrompts.ts`) — explicit instructions to check age ranges, read eligibility criteria, assign match labels, filter unlikely trials, limit to 4, and write concise conversational responses instead of repeating card data.
-- **Added scoring prompt** (`aiPrompts.ts`) — dedicated `SCORING_PROMPT` for the second AI call with rules for age checking, condition matching, medication cross-referencing, and label assignment.
-- **Added structured scoring schemas** (`zodSchemas.ts`) — `trialScoreSchema` and `scoringResponseSchema` for `generateObject` structured output (`matchLabel`, `matchScore`, `matchReason` per trial).
-- **Added second AI call inside tool execute** (`api/chat.ts`) — after `fetchTrials()` returns raw trials, a `generateObject` call scores each trial against the patient profile. Scores are merged into trial objects before the tool returns. Falls back to unscored trials if scoring fails.
-- **Tool output now includes patient profile** (`api/chat.ts`) — `patientProfile` object echoed back alongside trials so the conversational AI can cross-reference.
-- **Added match fields to data model** (`types.ts`) — `TrialSummary` now includes `eligibilityFull?`, `matchLabel?`, `matchReason?`.
-- **Increased eligibility text for AI** (`clinicalTrials.ts`) — added `eligibilityFull` field (1500 chars) for scoring; UI still uses 500-char truncated version.
-- **Added match badges to trial cards** (`TrialCard.tsx`) — color-coded `MatchBadge` component (green/amber/blue/red) with match reason text.
-- **Cards now filter and sort** (`TrialCardsFromChat.tsx`) — filters out "Unlikely" trials, sorts by `matchScore` desc, shows first 4 with "Show more" button.
-- **Updated Convex schema + validators** (`schema.ts`, `searchTrials.ts`, `searchTrialsQueries.ts`) — added `eligibilityFull`, `matchLabel`, `matchReason` as optional fields across all validators.
-- **Verified**: tested with "12yo son, sickle cell disease, London, hydroxyurea" — correctly filtered 10 trials down to 4 matches (3 Strong, 1 Possible), excluded age-ineligible trials (under-2 and adults-only).
+- Rewrote system prompt with explicit scoring instructions (age check, eligibility check, match labels, filter unlikely, limit to 4, concise output).
+- Added `SCORING_PROMPT` and Zod schemas (`trialScoreSchema`, `scoringResponseSchema`) for structured AI scoring.
+- Added second AI call (`generateObject`) inside the chat tool execute — scores trials against patient profile before returning them.
+- Added `matchLabel`, `matchReason`, `eligibilityFull` fields to `TrialSummary` type, Convex schema, and all validators.
+- Added color-coded match badges to `TrialCard`. Cards filter out "Unlikely" trials, sort by score, cap at 4 with "Show more".
+- Tested: 12yo sickle cell patient in London → 9 raw trials filtered to 4 matches (3 Strong, 1 Possible).
+
+### refinement-form-scoring-parity (completed)
+
+- Form path (`/find`) was calling `fetchTrials()` directly from the browser — no scoring, no filtering, no badges.
+- Extracted scoring logic into shared `scoreTrials()` utility (`lib/scoreTrials.ts`). Both paths now use it.
+- Created `/api/search` server route — does fetch + score server-side (needs OpenAI key).
+- Updated `find.tsx` to POST to `/api/search` instead of calling `fetchTrials` directly. Passes age, medications, additionalInfo.
+- Updated `TrialResultsList` to filter/sort/cap identically to `TrialCardsFromChat`.
+- Simplified `api/chat.ts` to use the same shared `scoreTrials()` function.
+- Both paths now produce identical scored, filtered, badged results.

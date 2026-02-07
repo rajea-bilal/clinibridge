@@ -3,7 +3,6 @@ import { useState } from "react";
 import { TrialSearchForm } from "@/components/Form/TrialSearchForm";
 import { TrialResultsList } from "@/components/Trials/TrialResultsList";
 import type { TrialSearchInput, TrialSummary } from "@/lib/types";
-import { fetchTrials } from "@/lib/clinicalTrials";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 
 // @ts-expect-error — route path not in generated tree until `bun run dev` regenerates it
@@ -13,6 +12,7 @@ export const Route = createFileRoute("/find")({
 
 function FindPage() {
   const [trials, setTrials] = useState<TrialSummary[]>([]);
+  const [totalFromApi, setTotalFromApi] = useState<number | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -23,18 +23,33 @@ function FindPage() {
     setHasSearched(true);
 
     try {
-      const result = await fetchTrials({
-        condition: input.condition,
-        location: input.location,
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          condition: input.condition,
+          age: input.age,
+          location: input.location,
+          medications: input.medications,
+          additionalInfo: input.additionalInfo,
+        }),
       });
 
+      const result = (await response.json()) as {
+        trials: TrialSummary[];
+        error?: string;
+        count?: number;
+      };
+
       setTrials(result.trials);
+      setTotalFromApi(result.count);
       if (result.error) {
         setError(result.error);
       }
     } catch {
       setError("Something went wrong. Please try again.");
       setTrials([]);
+      setTotalFromApi(undefined);
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +92,7 @@ function FindPage() {
               trials={trials}
               error={error}
               isLoading={isLoading}
+              totalFromApi={totalFromApi}
             />
           )}
         </div>

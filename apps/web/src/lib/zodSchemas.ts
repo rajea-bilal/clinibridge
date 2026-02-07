@@ -20,3 +20,17 @@ export const searchTrialsToolSchema = z.object({
 });
 
 export type SearchTrialsToolInput = z.infer<typeof searchTrialsToolSchema>;
+
+/** Schema for the AI scoring response — one entry per trial */
+export const trialScoreSchema = z.object({
+  nctId: z.string(),
+  matchLabel: z.enum(["Strong Match", "Possible Match", "Worth Exploring", "Unlikely"]),
+  matchScore: z.number().min(0).max(100).describe("0-100 confidence score"),
+  matchReason: z
+    .string()
+    .describe("One plain-English sentence explaining why the patient does or does not match"),
+});
+
+export const scoringResponseSchema = z.object({
+  scores: z.array(trialScoreSchema),
+});

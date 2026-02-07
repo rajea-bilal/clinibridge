@@ -14,6 +14,7 @@ isProject: false
 - [x] feature-frontend-experience
 - [x] feature-landing-and-routing
 - [x] dev-environment-setup
+- [x] refinement-ai-scoring-and-filtering
 
 ## Notes
 
@@ -65,3 +66,17 @@ isProject: false
 - Added `Id<"searches">` type annotation to fix TypeScript circular inference error.
 - Commented out `alchemy()` plugin in `vite.config.ts` — crashes without wrangler config, not needed for local dev.
 - Convex typecheck passing, functions deployed, UI rendering on `localhost:3001`.
+
+### refinement-ai-scoring-and-filtering (completed)
+
+- **Rewrote system prompt** (`aiPrompts.ts`) — explicit instructions to check age ranges, read eligibility criteria, assign match labels, filter unlikely trials, limit to 4, and write concise conversational responses instead of repeating card data.
+- **Added scoring prompt** (`aiPrompts.ts`) — dedicated `SCORING_PROMPT` for the second AI call with rules for age checking, condition matching, medication cross-referencing, and label assignment.
+- **Added structured scoring schemas** (`zodSchemas.ts`) — `trialScoreSchema` and `scoringResponseSchema` for `generateObject` structured output (`matchLabel`, `matchScore`, `matchReason` per trial).
+- **Added second AI call inside tool execute** (`api/chat.ts`) — after `fetchTrials()` returns raw trials, a `generateObject` call scores each trial against the patient profile. Scores are merged into trial objects before the tool returns. Falls back to unscored trials if scoring fails.
+- **Tool output now includes patient profile** (`api/chat.ts`) — `patientProfile` object echoed back alongside trials so the conversational AI can cross-reference.
+- **Added match fields to data model** (`types.ts`) — `TrialSummary` now includes `eligibilityFull?`, `matchLabel?`, `matchReason?`.
+- **Increased eligibility text for AI** (`clinicalTrials.ts`) — added `eligibilityFull` field (1500 chars) for scoring; UI still uses 500-char truncated version.
+- **Added match badges to trial cards** (`TrialCard.tsx`) — color-coded `MatchBadge` component (green/amber/blue/red) with match reason text.
+- **Cards now filter and sort** (`TrialCardsFromChat.tsx`) — filters out "Unlikely" trials, sorts by `matchScore` desc, shows first 4 with "Show more" button.
+- **Updated Convex schema + validators** (`schema.ts`, `searchTrials.ts`, `searchTrialsQueries.ts`) — added `eligibilityFull`, `matchLabel`, `matchReason` as optional fields across all validators.
+- **Verified**: tested with "12yo son, sickle cell disease, London, hydroxyurea" — correctly filtered 10 trials down to 4 matches (3 Strong, 1 Possible), excluded age-ineligible trials (under-2 and adults-only).

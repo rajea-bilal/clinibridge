@@ -11,38 +11,13 @@ import {
 } from "@tanstack/react-router";
 
 import { createServerFn } from "@tanstack/react-start";
-import { api } from "@yugen/backend/convex/_generated/api";
 import type { ConvexReactClient } from "convex/react";
-import { ConvexProvider, useQuery } from "convex/react";
+import { ConvexProvider } from "convex/react";
 import { HumanBehaviorProvider } from "humanbehavior-js/react";
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
 import appCss from "../index.css?url";
-
-declare global {
-  interface Window {
-    $ujq: unknown[][];
-    uj: {
-      init: (
-        projectId: string,
-        options: {
-          widget: boolean;
-          position: string;
-          theme: string;
-        }
-      ) => void;
-      identify: (user: {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        avatar?: string;
-      }) => void;
-    };
-  }
-}
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
   const token = await getToken();
@@ -254,7 +229,6 @@ function RootDocument() {
               authClient={authClient}
               client={context.convexClient}
             >
-              <UserJotIdentify isAuthenticated={!!token} />
               <Outlet />
               <Toaster richColors />
               {/* <TanStackRouterDevtools position="bottom-left" /> */}
@@ -262,44 +236,7 @@ function RootDocument() {
           </ConvexProvider>
         </HumanBehaviorProvider>
         <Scripts />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.$ujq=window.$ujq||[];window.uj=window.uj||new Proxy({},{get:(_,p)=>(...a)=>window.$ujq.push([p,...a])});document.head.appendChild(Object.assign(document.createElement('script'),{src:'https://cdn.userjot.com/sdk/v2/uj.js',type:'module',async:!0}));`,
-          }}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.uj.init('cmibxq08h046914k3ab5pb0sk', { widget: true, position: 'right', theme: 'auto' });`,
-          }}
-        />
       </body>
     </html>
   );
-}
-
-function UserJotIdentify({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const user = useQuery(api.auth.getCurrentUser, isAuthenticated ? {} : "skip");
-
-  useEffect(() => {
-    if (!user || typeof window === "undefined" || !window.uj) return;
-
-    const userIdFromUser =
-      (user as { _id?: string; id?: string })._id ||
-      (user as { _id?: string; id?: string }).id;
-    if (!userIdFromUser) return;
-
-    const nameParts = user.name?.split(" ") || [];
-    const firstName = nameParts[0] || user.name || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
-
-    window.uj.identify({
-      id: userIdFromUser,
-      email: user.email,
-      firstName,
-      lastName,
-      ...(user.image && { avatar: user.image }),
-    });
-  }, [user]);
-
-  return null;
 }

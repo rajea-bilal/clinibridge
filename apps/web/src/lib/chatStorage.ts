@@ -30,11 +30,15 @@ function readStore(): StoredConversation[] {
 }
 
 function writeStore(conversations: StoredConversation[]) {
-  // Keep capped and sorted by most-recent first
-  const trimmed = conversations
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, MAX_CONVERSATIONS);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+  try {
+    // Keep capped and sorted by most-recent first
+    const trimmed = conversations
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, MAX_CONVERSATIONS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+  } catch (err) {
+    console.error("[chatStorage] writeStore failed:", err);
+  }
 }
 
 /** Derive a short title from the first user message */
@@ -67,25 +71,32 @@ export function getConversation(id: string): StoredConversation | null {
 
 /** Save or update a conversation. Auto-derives title from first user message. */
 export function saveConversation(id: string, messages: UIMessage[]) {
-  const store = readStore();
-  const existing = store.find((c) => c.id === id);
-  const now = Date.now();
+  try {
+    // Deep-clone messages to strip any non-serializable data (proxies, getters, etc.)
+    const cleanMessages = JSON.parse(JSON.stringify(messages)) as UIMessage[];
 
-  if (existing) {
-    existing.messages = messages;
-    existing.updatedAt = now;
-    existing.title = deriveTitle(messages);
-  } else {
-    store.push({
-      id,
-      title: deriveTitle(messages),
-      createdAt: now,
-      updatedAt: now,
-      messages,
-    });
+    const store = readStore();
+    const existing = store.find((c) => c.id === id);
+    const now = Date.now();
+
+    if (existing) {
+      existing.messages = cleanMessages;
+      existing.updatedAt = now;
+      existing.title = deriveTitle(cleanMessages);
+    } else {
+      store.push({
+        id,
+        title: deriveTitle(cleanMessages),
+        createdAt: now,
+        updatedAt: now,
+        messages: cleanMessages,
+      });
+    }
+
+    writeStore(store);
+  } catch (err) {
+    console.error("[chatStorage] saveConversation failed:", err);
   }
-
-  writeStore(store);
 }
 
 /** Delete a conversation */

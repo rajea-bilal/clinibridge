@@ -5,12 +5,10 @@ import {
   listConversations,
   getConversation,
   generateId,
-  deleteConversation,
 } from "@/lib/chatStorage";
 import type { ConversationMeta } from "@/lib/chatStorage";
-import { ArrowLeft, MessageSquare, PanelLeft } from "lucide-react";
-import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import { Icon } from "@iconify/react";
+import { useState, useCallback, useEffect } from "react";
 
 // @ts-expect-error — route path not in generated tree until `bun run dev` regenerates it
 export const Route = createFileRoute("/chat")({
@@ -31,6 +29,12 @@ function ChatPage() {
   const refreshConversations = useCallback(() => {
     setConversations(listConversations());
   }, []);
+
+  // Refresh sidebar whenever activeId changes — runs AFTER the old
+  // ChatPanel's cleanup effect has saved to localStorage
+  useEffect(() => {
+    refreshConversations();
+  }, [activeId, refreshConversations]);
 
   function handleNewChat() {
     const newId = generateId();
@@ -57,53 +61,75 @@ function ChatPage() {
   }
 
   return (
-    <div className="dark flex h-screen flex-col bg-background text-foreground">
-      {/* Header */}
-      <header className="flex items-center gap-3 border-b border-border/40 px-4 py-3">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-muted-foreground hover:text-foreground"
-          title="Toggle sidebar"
-        >
-          <PanelLeft className="size-4" />
-        </Button>
-        <a
-          href="/"
-          className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-3.5" />
-          Back
-        </a>
-        <div className="flex items-center gap-2">
-          <MessageSquare className="size-4 text-muted-foreground" />
-          <h1 className="font-medium text-sm">CliniBridge Chat</h1>
-        </div>
-      </header>
+    <div
+      className="dark flex h-screen w-full overflow-hidden bg-neutral-950 text-neutral-50 relative selection:bg-emerald-500/30 selection:text-white antialiased"
+      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+    >
+      {/* Grain texture overlay */}
+      <div className="bg-grain" />
 
-      {/* Body: sidebar + chat */}
-      <div className="flex flex-1 overflow-hidden">
-        <ChatSidebar
-          conversations={conversations}
-          activeId={activeId}
-          onSelect={handleSelectConversation}
-          onNew={handleNewChat}
-          onRefresh={handleRefresh}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+      {/* Ambient glows — barely perceptible */}
+      <div className="fixed top-[-25%] right-[-15%] w-[900px] h-[900px] bg-emerald-900/[0.04] rounded-full blur-[180px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-15%] left-[-10%] w-[500px] h-[500px] bg-neutral-800/[0.06] rounded-full blur-[140px] pointer-events-none z-0" />
+
+      {/* Sidebar */}
+      <ChatSidebar
+        conversations={conversations}
+        activeId={activeId}
+        onSelect={handleSelectConversation}
+        onNew={handleNewChat}
+        onRefresh={handleRefresh}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col relative h-full bg-transparent">
+        {/* Mobile nav toggle */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/[0.05] bg-neutral-950/80 backdrop-blur-2xl z-20">
+          <div className="flex items-center gap-2.5">
+            <a href="/" className="text-white/30 hover:text-white/50 transition-colors duration-300">
+              <Icon icon="solar:arrow-left-linear" width={16} />
+            </a>
+            <a href="/" className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-neutral-950 shrink-0">
+                <Icon icon="solar:health-bold-duotone" width={12} />
+              </div>
+              <span className="font-bricolage font-medium text-sm uppercase tracking-tight text-white/80">
+                CliniBridge
+              </span>
+            </a>
+          </div>
+          <button
+            type="button"
+            className="text-white/40 hover:text-white/60 transition-colors duration-300 p-1"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <Icon icon="solar:hamburger-menu-linear" width={20} />
+          </button>
+        </div>
+
+        {/* Top-right export button (desktop) */}
+        <header className="hidden md:flex justify-end items-center p-6 pb-0 z-20 absolute top-0 right-0 w-full pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-4">
+            <button
+              type="button"
+              className="text-white/20 hover:text-white/50 transition-colors duration-300 p-2 rounded-lg hover:bg-white/[0.03]"
+              title="Export"
+            >
+              <Icon icon="solar:export-linear" width={18} />
+            </button>
+          </div>
+        </header>
 
         {/* Chat panel — key forces remount on conversation switch */}
-        <div className="flex-1 overflow-hidden">
-          <ChatPanel
-            key={activeId}
-            conversationId={activeId}
-            initialMessages={initialMessages}
-            onConversationUpdate={refreshConversations}
-          />
-        </div>
-      </div>
+        <ChatPanel
+          key={activeId}
+          conversationId={activeId}
+          initialMessages={initialMessages}
+          onConversationUpdate={refreshConversations}
+        />
+      </main>
     </div>
   );
 }

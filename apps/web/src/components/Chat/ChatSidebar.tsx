@@ -1,8 +1,9 @@
-import { Button } from "@/components/ui/button";
 import type { ConversationMeta } from "@/lib/chatStorage";
-import { deleteConversation } from "@/lib/chatStorage";
+import { deleteConversation, clearAllConversations } from "@/lib/chatStorage";
 import { cn } from "@/lib/utils";
-import { Plus, MessageSquare, Trash2, X } from "lucide-react";
+import { Icon } from "@iconify/react";
+import { Trash2 } from "lucide-react";
+import { useState } from "react";
 
 interface ChatSidebarProps {
   conversations: ConversationMeta[];
@@ -14,6 +15,8 @@ interface ChatSidebarProps {
   onClose: () => void;
 }
 
+const DAY_MS = 86_400_000;
+
 export function ChatSidebar({
   conversations,
   activeId,
@@ -23,10 +26,18 @@ export function ChatSidebar({
   open,
   onClose,
 }: ChatSidebarProps) {
+  const [showSettings, setShowSettings] = useState(false);
+
   function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
     deleteConversation(id);
     onRefresh();
+  }
+
+  function handleClearAll() {
+    clearAllConversations();
+    onRefresh();
+    setShowSettings(false);
   }
 
   function formatTime(ts: number) {
@@ -43,6 +54,63 @@ export function ChatSidebar({
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
 
+  // Group conversations: last 24h = "Recent", older = "Previous"
+  const now = Date.now();
+  const recent = conversations.filter((c) => now - c.updatedAt < DAY_MS);
+  const previous = conversations.filter((c) => now - c.updatedAt >= DAY_MS);
+
+  function renderItem(conv: ConversationMeta) {
+    const isActive = activeId === conv.id;
+    return (
+      <li key={conv.id}>
+        <button
+          type="button"
+          onClick={() => {
+            onSelect(conv.id);
+            onClose();
+          }}
+          className={cn(
+            "w-full text-left px-3 py-2.5 rounded-lg text-[13px] flex items-center gap-2.5 group transition-all duration-300 relative overflow-hidden",
+            isActive
+              ? "bg-white/[0.04] text-white/90"
+              : "hover:bg-white/[0.03] text-white/35 hover:text-white/60"
+          )}
+        >
+          {/* Subtle emerald accent bar — only on active */}
+          {isActive && (
+            <div className="absolute inset-y-1.5 left-0 w-[1.5px] rounded-full bg-gradient-to-b from-emerald-400/60 via-emerald-500/40 to-emerald-400/10" />
+          )}
+          <Icon
+            icon="solar:chat-line-linear"
+            width={14}
+            className={cn(
+              "shrink-0 transition-all duration-300",
+              isActive
+                ? "text-emerald-400/70"
+                : "text-white/20 group-hover:text-white/40"
+            )}
+          />
+          <div className="min-w-0 flex-1">
+            <span className="truncate block font-light">
+              {conv.title}
+            </span>
+            <span className="block mt-0.5 text-[10px] font-mono text-white/20">
+              {formatTime(conv.updatedAt)}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => handleDelete(e, conv.id)}
+            className="shrink-0 rounded p-0.5 opacity-0 transition-all duration-200 text-white/20 hover:text-red-400/70 group-hover:opacity-100"
+            title="Delete conversation"
+          >
+            <Trash2 className="size-3" />
+          </button>
+        </button>
+      </li>
+    );
+  }
+
   return (
     <>
       {/* Mobile overlay backdrop */}
@@ -55,88 +123,139 @@ export function ChatSidebar({
 
       <aside
         className={cn(
-          "flex flex-col border-r border-border/40 bg-background/95 backdrop-blur-sm transition-all duration-200 z-40",
+          "sidebar-glow-border h-full flex flex-col bg-neutral-950/60 backdrop-blur-2xl relative z-40 transition-all duration-300 ease-out",
           // Mobile: overlay drawer
-          "fixed inset-y-0 left-0 w-72 md:relative md:inset-auto",
+          "fixed inset-y-0 left-0 w-[280px] md:relative md:inset-auto",
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          "md:w-64 lg:w-72"
+          // Desktop: always visible
+          "md:flex"
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2 border-b border-border/40 px-3 py-3">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            Conversations
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onNew}
-              className="text-muted-foreground hover:text-foreground"
-              title="New chat"
-            >
-              <Plus className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground md:hidden"
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
+        {/* Logo Header */}
+        <div className="p-5 pb-4">
+          <a
+            href="/"
+            className="flex items-center gap-2.5 mb-5 group/logo hover:opacity-80 transition-opacity"
+          >
+            <div className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-neutral-950 shrink-0">
+              <Icon icon="solar:health-bold-duotone" width={15} />
+            </div>
+            <span className="font-bricolage text-[15px] tracking-tight font-medium uppercase text-white/90">
+              CliniBridge
+            </span>
+          </a>
+
+          {/* Back to home */}
+          <a
+            href="/"
+            className="flex items-center gap-2 text-white/25 hover:text-white/50 transition-colors text-[11px] font-mono tracking-wide mb-4"
+          >
+            <Icon icon="solar:arrow-left-linear" width={12} />
+            <span>Back to home</span>
+          </a>
+
+          {/* New Session Button */}
+          <button
+            type="button"
+            onClick={onNew}
+            className="w-full group h-10 rounded-lg border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-emerald-500/15 transition-all duration-500 flex items-center justify-center gap-2 relative overflow-hidden"
+          >
+            <Icon
+              icon="solar:add-circle-linear"
+              width={16}
+              className="text-white/30 group-hover:text-emerald-400/70 transition-colors duration-500"
+            />
+            <span className="text-[13px] font-light text-white/50 group-hover:text-white/70 transition-colors duration-500">
+              New Session
+            </span>
+          </button>
         </div>
 
-        {/* Conversation list */}
-        <nav className="flex-1 overflow-y-auto p-2">
+        {/* Subtle divider */}
+        <div className="mx-5 h-[1px] bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+        {/* Scrollable conversation list */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-3 pt-4 space-y-6">
           {conversations.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-              <MessageSquare className="size-5 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground/60">
-                No conversations yet
-              </p>
+            <div className="flex flex-col items-center gap-2.5 px-4 py-12 text-center">
+              <Icon
+                icon="solar:chat-line-linear"
+                width={18}
+                className="text-white/15"
+              />
+              <p className="text-[11px] text-white/20 font-mono tracking-wide">No conversations yet</p>
             </div>
           ) : (
-            <ul className="space-y-0.5">
-              {conversations.map((conv) => (
-                <li key={conv.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelect(conv.id);
-                      onClose();
-                    }}
-                    className={cn(
-                      "group flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors",
-                      activeId === conv.id
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                    )}
-                  >
-                    <MessageSquare className="mt-0.5 size-3.5 shrink-0 opacity-50" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-medium leading-snug">
-                        {conv.title}
-                      </p>
-                      <p className="mt-0.5 text-[10px] opacity-50">
-                        {formatTime(conv.updatedAt)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, conv.id)}
-                      className="mt-0.5 shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              {recent.length > 0 && (
+                <div>
+                  <div className="px-3 text-[9px] uppercase tracking-[0.25em] text-white/15 font-mono mb-2">
+                    Recent
+                  </div>
+                  <ul className="space-y-0.5">{recent.map(renderItem)}</ul>
+                </div>
+              )}
+              {previous.length > 0 && (
+                <div>
+                  <div className="px-3 text-[9px] uppercase tracking-[0.25em] text-white/15 font-mono mb-2">
+                    Previous
+                  </div>
+                  <ul className="space-y-0.5">{previous.map(renderItem)}</ul>
+                </div>
+              )}
+            </>
           )}
-        </nav>
+        </div>
+
+        {/* User Footer */}
+        <div className="p-4 relative">
+          {/* Top divider — emerald gradient */}
+          <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
+
+          <div className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-white/[0.03] transition-colors duration-300">
+            <div className="w-7 h-7 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-white/30">
+              <Icon icon="solar:user-linear" width={14} />
+            </div>
+            <div className="text-left flex-1 min-w-0">
+              <div className="text-[13px] font-light text-white/60 truncate">
+                Guest User
+              </div>
+              <div className="text-[9px] text-white/20 truncate font-mono tracking-[0.15em] uppercase">
+                Local Session
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              className="text-white/15 hover:text-white/40 transition-colors duration-300 p-1 rounded-lg hover:bg-white/[0.03]"
+              title="Settings"
+            >
+              <Icon icon="solar:settings-linear" width={16} />
+            </button>
+          </div>
+
+          {/* Settings dropdown */}
+          {showSettings && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-neutral-900/95 backdrop-blur-2xl border border-white/[0.06] rounded-lg p-1.5 shadow-2xl shadow-black/40">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-red-400/70 hover:bg-red-500/[0.06] transition-colors duration-300"
+              >
+                <Icon icon="solar:trash-bin-2-linear" width={14} />
+                <span>Clear all conversations</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-white/35 hover:bg-white/[0.03] transition-colors duration-300 mt-0.5"
+              >
+                <Icon icon="solar:close-circle-linear" width={14} />
+                <span>Close</span>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   );

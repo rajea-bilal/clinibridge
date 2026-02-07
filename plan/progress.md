@@ -19,6 +19,9 @@ isProject: false
 - [x] redesign-landing-page
 - [x] chat-ux-overhaul
 - [x] chat-conversation-history
+- [x] chat-ui-visual-refinement
+- [x] trial-cards-visual-refinement
+- [x] chat-persistence-bugfix
 
 ## Notes
 
@@ -121,3 +124,34 @@ isProject: false
 - Created `apps/web/src/components/Chat/ChatSidebar.tsx` — sidebar drawer with conversation list, new-chat button, delete per conversation, relative timestamps ("Just now", "5m ago", "2h ago"), mobile overlay with backdrop, responsive (fixed overlay on mobile, inline on desktop).
 - Updated `apps/web/src/routes/chat.tsx` — added sidebar toggle button in header, state management for `activeId`/`conversations`/`sidebarOpen`, auto-resumes most recent conversation on mount, `key={activeId}` on `ChatPanel` to force remount on conversation switch.
 - Updated `ChatPanel` to accept `conversationId`, `initialMessages`, `onConversationUpdate` props. Passes `id` and `initialMessages` to `useChat`. Auto-persists to localStorage on message count changes and when streaming completes.
+
+### chat-ui-visual-refinement (completed)
+
+- Restyled entire chat UI to match the landing page's premium dark aesthetic — emerald accents, glass morphism, grain overlay, understated borders.
+- **Sidebar**: Replaced flat `border-r border-white/10` with a custom CSS emerald glow border (`sidebar-glow-border` class using `::after` gradient line + `::before` radial bleed). Darkened surface to `bg-neutral-950/60 backdrop-blur-2xl`. Section headers use `font-mono text-[9px] uppercase tracking-[0.25em]` matching landing page patterns. Active conversation item has a gradient emerald accent bar (`from-emerald-400/60 via-emerald-500/40`). User footer uses gradient divider, mono typography for "Local Session" label.
+- **Chat layout**: Tuned ambient glow blobs to be barely perceptible (`emerald-900/[0.04]`). Mobile nav and export button opacity dialled down.
+- **Message bubbles**: Fixed zero-radius bug — theme's `--radius: 0rem` caused `rounded-lg` to render as rectangles. Added CSS overrides (`.chat-bubble-user`, `.chat-bubble-assistant`) with asymmetric rounding (iMessage-style). User bubble: glass pill with `hover:bg-white/[0.09]` micro-interaction. Assistant bubble: subtle glass with full prose typography control (`prose-p`, `prose-strong`, `prose-code`, `prose-a` with emerald tints). Text bumped to `text-[15px] font-light leading-relaxed` for readability.
+- **Message entrance animation**: Added `messageSlideIn` keyframe (0.4s, blur-to-sharp + slide-up) via `.message-enter` class.
+- **Avatars**: Replaced `MessageAvatar` wrapper with inline circles — assistant uses solar health icon with emerald tint + faint glow shadow, user shows "U" initial.
+- **Atmospheric depth**: Added decorative layers behind message area — radial emerald gradient mesh, edge vignette, geometric grid pattern at `opacity-[0.015]`, diagonal emerald light streak.
+- **Input area**: Bumped send button to `size-9 rounded-xl bg-white/90`. Actions bar padding increased to `px-5 pb-4` for better spacing. Focus glow tuned down.
+- **CSS additions**: `animate-fade-in`, `message-enter`, `sidebar-glow-border`, `chat-bubble-user`, `chat-bubble-assistant`, `no-scrollbar` utilities.
+- **Icon migration**: Switched chat components from lucide-react to `@iconify/react` (solar icon set) for sidebar, avatars, nav, and action buttons.
+- Zero functionality changes — all `useChat`, message rendering, tool outputs, suggestion clicks, auto-scroll, keyboard submit preserved.
+
+### trial-cards-visual-refinement (completed)
+
+- **TrialCard.tsx**: Replaced shadcn `Card`/`CardHeader`/`CardContent` with raw glass morphism divs (`bg-white/[0.03] border-white/[0.05] rounded-2xl backdrop-blur-sm`). Added top accent line that shifts to emerald on hover. Hover micro-interactions: background brightens, border glows, faint emerald shadow appears, title goes full white, CTA arrow animates up-right. Badges and pills use `rounded-full` instead of `rounded-sm`. Metadata grid uses solar icons. Internal gradient divider.
+- **TrialCardsFromChat.tsx**: Results header uses landing page pattern (mono uppercase + flanking emerald gradient lines). Staggered card entrance animation — each card enters with 80ms delay via `.trial-card-enter` CSS class. Show-more button restyled as glass button with emerald icon accent on hover. Error state uses consistent dark glass.
+- **Disclaimer.tsx**: Restyled to dark glass theme — `amber-500/10` border, `amber-500/[0.03]` bg, solar icon, refined typography.
+- **NoResults.tsx**: Dark glass card with solar search icon, refined text hierarchy.
+- **CSS**: Added `trialCardEnter` keyframe (`translateY(12px) scale(0.98) blur(3px)` → clean, 0.5s) via `.trial-card-enter` class.
+
+### chat-persistence-bugfix (completed)
+
+- **Bug**: Clicking "New Session" lost the current conversation. The old ChatPanel unmounted (due to `key={activeId}` change) but React effects don't fire on unmount — only cleanup functions run. No cleanup was saving messages.
+- **Fix 1**: Added save-on-unmount effect in `ChatPanel` using a `messagesRef` that always holds latest messages. Cleanup function calls `saveConversation(conversationId, messagesRef.current)` when unmounting.
+- **Fix 2**: Added `useEffect([activeId])` in `chat.tsx` that calls `refreshConversations()` whenever activeId changes. Runs after the old ChatPanel's cleanup (React runs cleanup before new effects), so the sidebar picks up the just-saved conversation.
+- **Fix 3**: `saveConversation` now deep-clones messages via `JSON.parse(JSON.stringify())` before storing, stripping any non-serializable proxies/getters from `useChat` internals.
+- **Fix 4**: Added `try/catch` with `console.error` to both `writeStore` and `saveConversation` so failures are visible in the console instead of silently swallowed.
+- **Fix 5**: Added `console.debug` logs in ChatPanel persist calls for debugging (`[ChatPanel] persisting`, `[ChatPanel] unmount save`).

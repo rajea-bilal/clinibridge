@@ -364,3 +364,150 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ===== Chat — Fade In Animation ===== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* ===== Chat — Message Entrance Animation ===== */
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.message-enter {
+  animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Chat — Message Bubble Overrides ===== */
+/* Override the prompt-kit's rounded-lg which resolves to 0rem via --radius */
+
+.chat-bubble-user {
+  border-radius: 1.25rem 1.25rem 0.375rem 1.25rem !important;
+  padding: 0.875rem 1.25rem !important;
+}
+
+.chat-bubble-assistant {
+  border-radius: 0.375rem 1.25rem 1.25rem 1.25rem !important;
+  padding: 1rem 1.25rem !important;
+}
+
+/* --- Assistant bubble — styled markdown list items --- */
+.chat-bubble-assistant ul {
+  list-style: none !important;
+  padding-left: 0 !important;
+  margin-top: 0.625rem !important;
+  margin-bottom: 0.625rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-bubble-assistant ul li {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 2px solid rgba(16, 185, 129, 0.35);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9em;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.chat-bubble-assistant ul li strong {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-weight: 500 !important;
+}
+
+/* ===== Chat — Trial Card Staggered Entrance ===== */
+
+@keyframes trialCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.trial-card-enter {
+  opacity: 0;
+  animation: trialCardEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Chat — Sidebar Glow Border ===== */
+
+.sidebar-glow-border {
+  position: relative;
+}
+
+.sidebar-glow-border::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(16, 185, 129, 0.15) 20%,
+    rgba(16, 185, 129, 0.25) 50%,
+    rgba(16, 185, 129, 0.15) 80%,
+    transparent 100%
+  );
+  z-index: 1;
+}
+
+/* Soft glow bleed next to the border */
+.sidebar-glow-border::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  right: -4px;
+  bottom: 10%;
+  width: 8px;
+  background: radial-gradient(
+    ellipse at left,
+    rgba(16, 185, 129, 0.06) 0%,
+    transparent 70%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ===== Chat — Scrollbar Hide ===== */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

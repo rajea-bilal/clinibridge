@@ -16,6 +16,9 @@ isProject: false
 - [x] dev-environment-setup
 - [x] refinement-ai-scoring-and-filtering
 - [x] refinement-form-scoring-parity
+- [x] redesign-landing-page
+- [x] chat-ux-overhaul
+- [x] chat-conversation-history
 
 ## Notes
 
@@ -86,3 +89,35 @@ isProject: false
 - Updated `TrialResultsList` to filter/sort/cap identically to `TrialCardsFromChat`.
 - Simplified `api/chat.ts` to use the same shared `scoreTrials()` function.
 - Both paths now produce identical scored, filtered, badged results.
+
+### redesign-landing-page (completed)
+
+- Full cinematic landing page redesign adapted from an HTML+Tailwind reference into the existing React/TanStack codebase.
+- Added Google Fonts (Bricolage Grotesque 300–700, Playfair Display 400–600) via preconnect + stylesheet links in `__root.tsx`.
+- Added custom CSS keyframes and utilities to `index.css`: `cinematicEntrance`, `slideUpFade`, `shimmerMove`, `animationIn`, `spinReverse`, grain overlay (`.bg-grain`), scroll animation system (`.animate-on-scroll`), delay utilities.
+- Created `apps/web/src/lib/useScrollAnimation.ts` — IntersectionObserver hook that triggers scroll-in animations once elements enter viewport.
+- Created `apps/web/src/components/landing/navbar.tsx` — floating pill navigation with glassmorphism, HeartPulse logo, desktop nav links, search/menu buttons.
+- Created `apps/web/src/components/landing/hero-section.tsx` — full-viewport cinematic hero with background image, staggered headline in Bricolage Grotesque, glassmorphism CTA card with shimmer overlay, two action buttons ("Get matches" → `/chat`, "I know the diagnosis" → `/find`), scroll indicator.
+- Created `apps/web/src/components/landing/emerald-divider.tsx` — section divider with emerald pulsing dot and gradient lines.
+- Created `apps/web/src/components/landing/featured-trials.tsx` — featured trials section with filter pill bar (All Studies / Oncology / Neurology), 12-column card grid with 3 image cards, grayscale→color hover effects.
+- Rewrote `apps/web/src/components/landing/footer.tsx` — 4-column grid layout with CliniBridge branding, Platform/Company link columns, copyright bar.
+- Rewrote `apps/web/src/routes/index.tsx` — composes Navbar, HeroSection, EmeraldDivider, FeaturedTrials, Footer with grain overlay.
+- Zero functionality changes — `/chat` and `/find` navigation preserved, routing/auth/backend untouched, all lucide-react icons (no new deps).
+
+### chat-ux-overhaul (completed)
+
+- Replaced raw `<Input>` + `<form>` chat input with `prompt-kit` component system: `PromptInput`, `PromptInputTextarea`, `PromptInputActions`, `PromptInputAction`.
+- Added `prompt-kit` component library under `apps/web/src/components/prompt-kit/` — `chat-container.tsx`, `loader.tsx`, `markdown.tsx`, `message.tsx`, `prompt-input.tsx`, `prompt-suggestion.tsx`, `scroll-button.tsx`.
+- Added shadcn UI primitives: `avatar.tsx`, `textarea.tsx`, `tooltip.tsx` under `apps/web/src/components/ui/`.
+- Replaced manual scroll-to-bottom with `ChatContainerRoot`/`ChatContainerContent`/`ChatContainerScrollAnchor` (backed by `use-stick-to-bottom` library) + floating `ScrollButton`.
+- Replaced raw message divs with `Message`/`MessageAvatar`/`MessageContent` prompt-kit components. Assistant messages now render markdown via `react-markdown` + `remark-gfm` + `remark-breaks`.
+- Added typing indicator: `Loader` component with `variant="typing"` shown during `status === "submitted"`.
+- Made suggestion pills clickable via `PromptSuggestion` — clicking a suggestion now sends the message directly.
+- Added new deps: `react-markdown`, `remark-gfm`, `remark-breaks`, `marked`, `use-stick-to-bottom`.
+
+### chat-conversation-history (completed)
+
+- Created `apps/web/src/lib/chatStorage.ts` — localStorage-based conversation persistence with `StoredConversation`/`ConversationMeta` types, CRUD API (`generateId`, `listConversations`, `getConversation`, `saveConversation`, `deleteConversation`, `clearAllConversations`), auto-derived titles from first user message, capped at 50 conversations.
+- Created `apps/web/src/components/Chat/ChatSidebar.tsx` — sidebar drawer with conversation list, new-chat button, delete per conversation, relative timestamps ("Just now", "5m ago", "2h ago"), mobile overlay with backdrop, responsive (fixed overlay on mobile, inline on desktop).
+- Updated `apps/web/src/routes/chat.tsx` — added sidebar toggle button in header, state management for `activeId`/`conversations`/`sidebarOpen`, auto-resumes most recent conversation on mount, `key={activeId}` on `ChatPanel` to force remount on conversation switch.
+- Updated `ChatPanel` to accept `conversationId`, `initialMessages`, `onConversationUpdate` props. Passes `id` and `initialMessages` to `useChat`. Auto-persists to localStorage on message count changes and when streaming completes.

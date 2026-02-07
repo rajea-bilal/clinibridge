@@ -1,15 +1,29 @@
 import type { UIMessage } from "ai";
+import type { TrialSummary } from "@/lib/types";
 import { TrialCardsFromChat } from "./TrialCardsFromChat";
-import { Bot, User } from "lucide-react";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from "@/components/prompt-kit/message";
+import { Loader } from "@/components/prompt-kit/loader";
+import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion";
+import { Bot } from "lucide-react";
 
 interface MessageListProps {
   messages: UIMessage[];
+  status: string;
+  onSuggestionClick: (suggestion: string) => void;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({
+  messages,
+  status,
+  onSuggestionClick,
+}: MessageListProps) {
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-16 text-center">
         <div className="flex size-12 items-center justify-center rounded-full border border-border/60 bg-muted/30">
           <Bot className="size-6 text-muted-foreground" />
         </div>
@@ -28,12 +42,12 @@ export function MessageList({ messages }: MessageListProps) {
             "Type 2 diabetes trials for a 55 year old",
             "Alzheimer's trials in California",
           ].map((suggestion) => (
-            <span
+            <PromptSuggestion
               key={suggestion}
-              className="cursor-default rounded-md border border-border/40 bg-muted/20 px-3 py-1.5 text-muted-foreground text-xs"
+              onClick={() => onSuggestionClick(suggestion)}
             >
               {suggestion}
-            </span>
+            </PromptSuggestion>
           ))}
         </div>
       </div>
@@ -41,10 +55,21 @@ export function MessageList({ messages }: MessageListProps) {
   }
 
   return (
-    <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+    <div className="space-y-1">
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
+
+      {/* Loader: show while waiting for AI response after submit */}
+      {status === "submitted" && (
+        <Message>
+          <MessageAvatar fallback="CB" className="bg-muted/30 text-xs" />
+          <div className="flex items-center gap-2 rounded-lg bg-muted/20 px-3 py-2">
+            <Loader variant="typing" size="sm" />
+            <span className="text-xs text-muted-foreground">Thinking...</span>
+          </div>
+        </Message>
+      )}
     </div>
   );
 }
@@ -52,35 +77,55 @@ export function MessageList({ messages }: MessageListProps) {
 function MessageBubble({ message }: { message: UIMessage }) {
   const isUser = message.role === "user";
 
-  return (
-    <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
-      {!isUser && (
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/30">
-          <Bot className="size-4 text-muted-foreground" />
+  if (isUser) {
+    return (
+      <Message className="justify-end">
+        <div className="max-w-[85%]">
+          {message.parts.map((part, i) => {
+            const key = `${message.id}-${i}`;
+            if (part.type === "text") {
+              return (
+                <MessageContent
+                  key={key}
+                  className="ml-auto bg-primary text-primary-foreground"
+                >
+                  <p className="whitespace-pre-wrap text-sm">{part.text}</p>
+                </MessageContent>
+              );
+            }
+            return null;
+          })}
         </div>
-      )}
+        <MessageAvatar
+          fallback="U"
+          className="bg-primary/20 text-xs text-primary"
+        />
+      </Message>
+    );
+  }
 
-      <div
-        className={`max-w-[85%] space-y-2 ${
-          isUser ? "text-right" : "text-left"
-        }`}
-      >
+  // Assistant message
+  return (
+    <Message>
+      <MessageAvatar
+        fallback="CB"
+        className="bg-muted/30 text-xs"
+      />
+      <div className="max-w-[85%] space-y-2">
         {message.parts.map((part, i) => {
           const key = `${message.id}-${i}`;
 
           switch (part.type) {
             case "text":
               return (
-                <div
+                <MessageContent
                   key={key}
-                  className={`inline-block rounded-lg px-3 py-2 text-sm ${
-                    isUser
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/40 text-foreground"
-                  }`}
+                  markdown
+                  id={`${message.id}-${i}`}
+                  className="bg-muted/40 text-sm"
                 >
-                  <p className="whitespace-pre-wrap">{part.text}</p>
-                </div>
+                  {part.text}
+                </MessageContent>
               );
 
             case "tool-searchTrials":
@@ -90,24 +135,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
                     key={key}
                     data={
                       part.output as {
-                        trials: Array<{
-                          nctId: string;
-                          title: string;
-                          summary: string;
-                          status: string;
-                          phase: string;
-                          conditions: string[];
-                          eligibility: string;
-                          eligibilityFull?: string;
-                          ageRange: string;
-                          locations: string[];
-                          interventions: string[];
-                          sponsor: string;
-                          matchScore: number;
-                          matchLabel?: string;
-                          matchReason?: string;
-                          url: string;
-                        }>;
+                        trials: TrialSummary[];
                         error?: string;
                         count?: number;
                       }
@@ -143,12 +171,6 @@ function MessageBubble({ message }: { message: UIMessage }) {
           }
         })}
       </div>
-
-      {isUser && (
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/60 bg-primary/20">
-          <User className="size-4 text-primary" />
-        </div>
-      )}
-    </div>
+    </Message>
   );
 }

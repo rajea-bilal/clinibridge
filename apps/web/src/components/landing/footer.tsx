@@ -1,61 +1,63 @@
-import { config } from "@root/config";
+import { HeartPulse } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="bg-black py-12">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="font-bold font-mono text-2xl text-white">
-            {config.metadata.siteNameWithSubtitle.includes(" ") ? (
-              <>
-                {config.metadata.siteNameWithSubtitle.split(" ")[0]}{" "}
-                <span className="text-white/60">
-                  {config.metadata.siteNameWithSubtitle
-                    .split(" ")
-                    .slice(1)
-                    .join(" ")}
-                </span>
-              </>
-            ) : (
-              config.metadata.siteNameWithSubtitle
-            )}
+    <footer className="text-white bg-black z-10 border-white/10 border-t pt-16 px-6 pb-16 relative">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 animate-on-scroll">
+        {/* Brand */}
+        <div className="col-span-1 md:col-span-2">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black">
+              <HeartPulse className="size-[18px]" />
+            </div>
+            <h2 style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }} className="text-2xl font-semibold uppercase">
+              CliniBridge
+            </h2>
           </div>
-          <div className="h-px w-32 bg-white/20" />
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <a
-              className="font-mono text-sm text-white no-underline transition-all duration-300 hover:text-white/80"
-              href="https://yugen.userjot.com/"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Share Feedback
-            </a>
-            <a
-              className="font-mono text-sm text-white no-underline transition-all duration-300 hover:text-white/80"
-              href="https://yugen.userjot.com/roadmap"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              View Roadmap
-            </a>
-          </div>
-          <p className="text-center font-mono text-sm text-white/50">
-            © {new Date().getFullYear()}{" "}
-            {config.metadata.siteNameWithSubtitle || config.metadata.siteName},
-            All rights reserved
-          </p>
-          <p className="text-center font-mono text-sm text-white/50">
-            Built with heavy doses of Creatine by{" "}
-            <a
-              className="relative inline-block border-white/30 border-b font-semibold text-white no-underline transition-all duration-300 hover:scale-105 hover:border-white/60 hover:text-white hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
-              href="https://x.com/_7obaid_"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Obaid
-            </a>
+          <p className="text-white/50 max-w-xs mb-8">
+            Navigating clinical trials shouldn't feel overwhelming. We use AI to
+            match you with hope.
           </p>
         </div>
+
+        {/* Platform */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-medium text-lg mb-2">Platform</h4>
+          <a
+            href="/chat"
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            Search Trials
+          </a>
+          <a
+            href="/find"
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            For Patients
+          </a>
+        </div>
+
+        {/* Company */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-medium text-lg mb-2">Company</h4>
+          <a
+            href="#"
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            About Us
+          </a>
+          <a
+            href="#"
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            Careers
+          </a>
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col items-center text-center gap-4 text-sm text-white/40 animate-on-scroll anim-delay-100">
+        <p>&copy; {new Date().getFullYear()} CliniBridge. All rights reserved.</p>
       </div>
     </footer>
   );

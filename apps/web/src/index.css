@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bricolage+Grotesque:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap");
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -7,6 +8,20 @@
   --font-sans:
     "Inter", "Geist", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-bricolage: "Bricolage Grotesque", sans-serif;
+  --font-display: "Playfair Display", serif;
+
+  /* Explicit text-size tokens — ensures availability regardless of @theme inline */
+  --text-7xl: 4.5rem;
+  --text-7xl--line-height: 1;
+  --text-8xl: 6rem;
+  --text-8xl--line-height: 1;
+  --text-9xl: 8rem;
+  --text-9xl--line-height: 1;
+
+  /* Fluid hero headline: scales from 2.25rem → 8vw → 8rem */
+  --text-hero: clamp(2.25rem, 8vw, 8rem);
+  --text-hero--line-height: 0.85;
 }
 
 html,
@@ -214,4 +229,138 @@ body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
+}
+
+/* ===== Landing Page — Fonts ===== */
+/* font-bricolage and font-display are registered as Tailwind v4 theme
+   utilities via --font-bricolage and --font-display in @theme above.
+   The classes below are kept as fallbacks only. */
+
+.font-bricolage {
+  font-family: "Bricolage Grotesque", sans-serif;
+}
+
+.font-display {
+  font-family: "Playfair Display", serif;
+}
+
+/* ===== Landing Page — Keyframes ===== */
+
+@keyframes cinematicEntrance {
+  0% {
+    transform: scale(1.4);
+    filter: blur(20px) grayscale(100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    filter: blur(0px) grayscale(0%);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmerMove {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-20deg);
+  }
+}
+
+@keyframes animationIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes spinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+/* ===== Landing Page — Animation Utilities ===== */
+
+.animate-cinematic {
+  animation: cinematicEntrance 3.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-shimmer-effect {
+  animation: shimmerMove 3s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-spin-slow-reverse {
+  animation: spinReverse 12s linear infinite;
+}
+
+/* ===== Landing Page — Scroll Animations ===== */
+
+.animate-on-scroll {
+  opacity: 0;
+  animation: animationIn 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-play-state: paused;
+}
+
+.animate-on-scroll.animate {
+  animation-play-state: running;
+}
+
+.anim-delay-100 {
+  animation-delay: 100ms;
+}
+.anim-delay-200 {
+  animation-delay: 200ms;
+}
+.anim-delay-300 {
+  animation-delay: 300ms;
+}
+.anim-delay-400 {
+  animation-delay: 400ms;
+}
+
+/* ===== Landing Page — Grain Overlay ===== */
+
+.bg-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ===== Landing Page — Scrollbar Hide ===== */
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -35,38 +35,9 @@ CUSTOM_ENV_VARS=(
 echo "📦 Deploying Convex backend..."
 cd ../../packages/backend
 
-# Deploy Convex and capture the production URL while showing output in real-time
-echo ""
-DEPLOY_OUTPUT=$(bunx convex deploy --yes 2>&1 | tee /dev/tty)
+PROD_CONVEX_URL="https://terrific-wolf-951.eu-west-1.convex.cloud"
+bunx convex deploy --yes
 
-# Extract production URL from deployment output
-# Convex outputs something like: "Deployed to: https://xxx.convex.cloud"
-PROD_CONVEX_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE "https://[a-z0-9-]+\.convex\.cloud" | head -1)
-
-# If we couldn't extract from output, try reading from deployment config
-if [ -z "$PROD_CONVEX_URL" ]; then
-  echo "⚠️  Could not extract URL from deploy output, reading from config..."
-  
-  # Try to get from convex deployment settings
-  if [ -f ".env.local" ]; then
-    # Get the prod deployment from CONVEX_DEPLOYMENT
-    PROD_DEPLOYMENT=$(grep "^CONVEX_DEPLOYMENT=" .env.local | cut -d '=' -f2 | cut -d '#' -f1 | xargs)
-    
-    # If it's a prod deployment (prod:xxx), construct the URL
-    if [[ "$PROD_DEPLOYMENT" == prod:* ]]; then
-      DEPLOYMENT_NAME="${PROD_DEPLOYMENT#prod:}"
-      PROD_CONVEX_URL="https://${DEPLOYMENT_NAME}.convex.cloud"
-    else
-      echo "❌ No production deployment found. Please run 'bunx convex deploy' manually first."
-      exit 1
-    fi
-  fi
-fi
-
-if [ -z "$PROD_CONVEX_URL" ]; then
-  echo "❌ Failed to determine production Convex URL"
-  exit 1
-fi
 
 PROD_CONVEX_SITE_URL="${PROD_CONVEX_URL//.convex.cloud/.convex.site}"
 

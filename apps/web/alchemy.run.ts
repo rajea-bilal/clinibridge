@@ -1,7 +1,7 @@
 import alchemy from "alchemy";
 import { TanStackStart } from "alchemy/cloudflare";
 
-const app = await alchemy("yugen");
+const app = await alchemy("clinibridge");
 
 export const web = await TanStackStart("web", {
   bindings: {

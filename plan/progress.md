@@ -24,6 +24,7 @@ isProject: false
 - [x] chat-persistence-bugfix
 - [x] navbar-and-about-page
 - [x] form-ui-visual-consistency
+- [x] code-review-and-error-handling
 
 ## Notes
 
@@ -181,4 +182,38 @@ isProject: false
   - Ambient glows matching chat UI (`emerald-900/[0.03]`, `neutral-800/[0.05]`), grain overlay, `slideUpFade` animations.
   - `useScrollAnimation()` hook for footer scroll-triggered animations.
   - `useEffect` to force `html`/`body` background to `#0a0a0a` (global CSS sets `bg-white` which bled through below footer).
-- **Footer**: Changed `bg-black` to `bg-neutral-950` for seamless blending. Updated links — "About Us" → `/about`, added "Recruiting Now" → `/#trials`, removed dead "Careers" link. Attribution ("Built by Rajea Bilal — exploring how AI and thoughtful design can make clinical research accessible...") moved into the bottom bar, centered above copyright. Name links to LinkedIn profile (`linkedin.com/in/rajea-bilal/`).
+- **Footer**: Changed `bg-black` to `bg-neutral-950` for seamless blending. Updated links — "About Us" → `/about`, added "Recruiting Now" → `/#trials`, removed dead "Careers" link. Attribution ("Built by Rajea Bilal — exploring how AI and thoughtful design can make clinical research accessible...") moved into the bottom bar, centered above copyright.
+
+### code-review-and-error-handling (completed)
+
+- **Comprehensive review** of all modified and new files from git status — checked TypeScript types, linting, formatting, and error/loading state patterns.
+- **Files reviewed**: `TrialSearchForm.tsx`, `TrialResultsList.tsx`, `featured-trials.tsx`, `network-section.tsx`, `about.tsx`, `find.tsx`, `featuredTrials.ts`, `featuredTrialsCache.ts`, plus schema and supporting components.
+- **TypeScript validation**: Ran `bunx convex typecheck` from `packages/backend` — all types valid, no errors.
+- **Linting**: No linter errors found across all reviewed files.
+- **Loading states**:
+  - `TrialSearchForm`: Disabled button + "Searching..." text with pulsing emerald dot during `isLoading`.
+  - `TrialResultsList`: Three staggered skeleton cards with `animate-pulse` + `animationDelay` during loading.
+  - `FeaturedTrials`: Skeleton placeholders for phase badges, titles, and metadata while loading; always shows 3 cards (uses fallback data if API fails).
+  - `NetworkSection`: Static content, no loading states needed.
+  - `about.tsx`: Static page, no async operations.
+  - `find.tsx`: Passes `isLoading` to form and results list; manages state properly.
+- **Error states**:
+  - `TrialResultsList`: Red glass card with helpful error message + "try again" copy.
+  - `FeaturedTrials`: Silent fallback to hardcoded trials on API failure (logged to console); uses try-catch around fetch, cache reads, and cache writes.
+  - `featuredTrials.ts`: Multiple fallback layers — cache check wrapped in try-catch, fetch wrapped in try-catch with timeout handling, padding to 3 cards if needed, cache upsert non-critical (wrapped in try-catch).
+  - `featuredTrialsCache.ts`: Returns `null` on cache miss (no throw).
+  - `find.tsx`: Catch block sets user-facing error message + clears trials on fetch failure.
+  - All error boundaries use consistent dark glass styling (`border-red-500/10 bg-red-500/[0.03]`).
+- **User feedback**:
+  - Loading: Skeletons use realistic shapes + staggered delays for polish.
+  - Error: Clear actionable messages ("Please try again or adjust your search criteria").
+  - Empty state: `NoResults` component with helpful copy ("Try broadening your search...").
+  - Success: Smooth fade-in animations with staggered delays per card.
+- **API resilience**:
+  - `featuredTrials.ts`: 12s timeout on ClinicalTrials.gov fetch, abortController cleanup, status code check, fallback data for empty responses, padding logic to always return 3 trials.
+  - Cache layer with 1-hour TTL to reduce API load.
+  - Non-blocking cache updates (failures don't break the user flow).
+- **Convex schema**: `featuredTrialsCache` table properly indexed by `category`, validator matches TypeScript types exactly.
+- **Code quality**: Clean separation of concerns, consistent naming, proper TypeScript annotations, no magic numbers (constants at top of files), proper cleanup in useEffect hooks.
+- **Accessibility**: Proper ARIA labels on form inputs (`aria-invalid`), semantic HTML, keyboard navigation works, focus states visible.
+- **No regressions**: All existing functionality preserved — chat, form search, trial cards, navigation, persistence all working as expected.

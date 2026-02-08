@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-// import alchemy from "alchemy/cloudflare/tanstack-start";
+import alchemy from "alchemy/cloudflare/tanstack-start";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -14,7 +14,7 @@ export default defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    // alchemy(), // Not needed for local dev — requires `alchemy dev` to create wrangler config
+    alchemy(), // Not needed for local dev — requires `alchemy dev` to create wrangler config
   ],
   resolve: {
     dedupe: ["convex/react", "convex"], // Force single instance of convex

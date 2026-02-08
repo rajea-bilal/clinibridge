@@ -10,6 +10,8 @@ export const web = await TanStackStart("web", {
     VITE_CONVEX_SITE_URL: process.env.VITE_CONVEX_SITE_URL || "",
     // HumanBehavior Analytics
     VITE_HUMANBEHAVIOR_API_KEY: process.env.VITE_HUMANBEHAVIOR_API_KEY || "",
+    // OpenAI API Key (server-side)
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
     // Your custom variables
     VITE_TEST_VAR: process.env.VITE_TEST_VAR || "",
   },

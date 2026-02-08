@@ -63,6 +63,9 @@ export const searchTrials = action({
     searchId: v.optional(v.id("searches")),
   }),
   handler: async (ctx, args) => {
+    console.log("[searchTrials Convex] ===== START =====");
+    console.log("[searchTrials Convex] Input args:", JSON.stringify(args, null, 2));
+
     const {
       condition,
       synonyms = [],
@@ -73,10 +76,12 @@ export const searchTrials = action({
     } = args;
 
     const location = normalizeLocation(rawLocation);
+    console.log("[searchTrials Convex] normalizeLocation:", JSON.stringify({ raw: rawLocation, normalized: location }));
 
     // Build condition query
     const conditionTerms = [condition, ...(synonyms ?? [])].filter(Boolean);
     const conditionQuery = conditionTerms.join(" OR ");
+    console.log("[searchTrials Convex] Condition query:", JSON.stringify({ conditionTerms, conditionQuery }));
 
     const params = new URLSearchParams({
       "query.cond": conditionQuery,
@@ -90,44 +95,72 @@ export const searchTrials = action({
     }
 
     const url = `${BASE_URL}?${params.toString()}`;
-    console.log("[ClinicalTrials] API URL:", url);
+    console.log("[searchTrials Convex] Full API URL:", url);
+
     const cacheKey = buildCacheKey(conditionTerms, location);
     const cached = cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
+      console.log("[searchTrials Convex] CACHE HIT — returning", cached.trials.length, "cached trials");
       return { trials: cached.trials };
     }
+    console.log("[searchTrials Convex] Cache miss, querying API...");
 
     try {
       const response = await requestWithRetry(
         url,
         location ? LOCATION_TIMEOUT_MS : TIMEOUT_MS
       );
+      console.log("[searchTrials Convex] HTTP response status:", response.status);
+
       if (!response.ok) {
-        return {
-          trials: [],
-          error:
-            response.status === 429
-              ? "ClinicalTrials.gov rate limit reached. Please try again later."
-              : `ClinicalTrials.gov returned status ${response.status}`,
-        };
+        const errMsg =
+          response.status === 429
+            ? "ClinicalTrials.gov rate limit reached. Please try again later."
+            : `ClinicalTrials.gov returned status ${response.status}`;
+        console.log("[searchTrials Convex] Non-OK response:", errMsg);
+        return { trials: [], error: errMsg };
       }
 
       const data = await response.json();
+      console.log(
+        "[searchTrials Convex] Raw JSON keys:", Object.keys(data),
+        "| studies array?", Array.isArray(data?.studies),
+        "| study count:", data?.studies?.length ?? 0
+      );
+
       const studies = Array.isArray(data?.studies) ? data.studies : null;
       if (!studies) {
+        console.log("[searchTrials Convex] No studies array in response!");
         return {
           trials: [],
           error:
             "ClinicalTrials.gov response format changed. Please try again later.",
         };
       }
+
+      let nullCount = 0;
       const trials = studies
-        .map(parseAndNormalize)
+        .map((s: Record<string, unknown>, i: number) => {
+          const result = parseAndNormalize(s);
+          if (!result) {
+            nullCount++;
+            console.log(
+              "[searchTrials Convex] parseAndNormalize null at index", i,
+              "| has protocolSection?", !!s?.protocolSection
+            );
+          }
+          return result;
+        })
         .filter(
           (
             t: ReturnType<typeof parseAndNormalize>
           ): t is NonNullable<typeof t> => t !== null
         );
+
+      console.log("[searchTrials Convex] After parsing: valid =", trials.length, "| null =", nullCount);
+      console.log("[searchTrials Convex] Trial IDs:", trials.map((t: TrialSummary) => t.nctId));
+      console.log("[searchTrials Convex] Trial statuses:", trials.map((t: TrialSummary) => t.status));
+
       cache.set(cacheKey, {
         expiresAt: Date.now() + CACHE_TTL_MS,
         trials,
@@ -148,8 +181,10 @@ export const searchTrials = action({
         }
       );
 
+      console.log("[searchTrials Convex] ===== END — returning", trials.length, "trials, searchId:", searchId, "=====");
       return { trials, searchId };
     } catch (err: unknown) {
+      console.error("[searchTrials Convex] EXCEPTION:", err);
       if (err instanceof DOMException && err.name === "AbortError") {
         return {
           trials: [],

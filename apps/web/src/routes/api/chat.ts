@@ -77,6 +77,9 @@ export const Route = createFileRoute("/api/chat")({
               description: TOOL_DESCRIPTION,
               inputSchema: searchTrialsToolSchema,
               execute: async (args) => {
+                console.log("[/api/chat tool] ===== searchTrials TOOL CALLED =====");
+                console.log("[/api/chat tool] Raw args from AI:", JSON.stringify(args, null, 2));
+
                 const {
                   condition,
                   synonyms,
@@ -94,7 +97,10 @@ export const Route = createFileRoute("/api/chat")({
                   )
                   .slice(0, 8);
 
+                console.log("[/api/chat tool] After synonym filtering:", JSON.stringify({ condition, safeSynonyms, location, age }));
+
                 if (isVagueCondition(condition)) {
+                  console.log("[/api/chat tool] BLOCKED: condition deemed too vague:", condition);
                   return {
                     error:
                       "Please provide a more specific diagnosis (for example, the exact condition or cancer type) before I can search.",
@@ -108,7 +114,17 @@ export const Route = createFileRoute("/api/chat")({
                   location,
                 });
 
+                console.log(
+                  "[/api/chat tool] fetchTrials returned:",
+                  JSON.stringify({
+                    trialCount: result.trials.length,
+                    error: result.error ?? null,
+                    trialIds: result.trials.map((t) => t.nctId),
+                  })
+                );
+
                 if (result.error) {
+                  console.log("[/api/chat tool] Returning error:", result.error);
                   return { error: result.error, trials: [] };
                 }
 
@@ -120,11 +136,20 @@ export const Route = createFileRoute("/api/chat")({
                   additionalInfo: additionalInfo ?? "",
                 };
 
+                console.log("[/api/chat tool] Scoring with profile:", JSON.stringify(patientProfile));
                 const scoredTrials = await scoreTrials(
                   result.trials,
                   patientProfile
                 );
+                console.log(
+                  "[/api/chat tool] After scoring:",
+                  scoredTrials.length,
+                  "trials |",
+                  "scores:",
+                  scoredTrials.map((t) => ({ id: t.nctId, score: t.matchScore, label: t.matchLabel }))
+                );
 
+                console.log("[/api/chat tool] ===== RETURNING", scoredTrials.length, "trials =====");
                 return {
                   trials: scoredTrials,
                   count: result.trials.length,

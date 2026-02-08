@@ -21,7 +21,12 @@ export async function scoreTrials(
   trials: TrialSummary[],
   patientProfile: PatientProfile
 ): Promise<TrialSummary[]> {
-  if (trials.length === 0) return trials;
+  console.log("[scoreTrials] Input:", trials.length, "trials | patient age:", patientProfile.age);
+
+  if (trials.length === 0) {
+    console.log("[scoreTrials] No trials to score, returning empty");
+    return trials;
+  }
 
   try {
     const scoringInput = trials.map((t) => ({
@@ -36,17 +41,20 @@ export async function scoreTrials(
       phase: t.phase,
     }));
 
+    console.log("[scoreTrials] Calling AI scoring (temp=0)...");
     const scoringResult =
       (await scoreWithModel(scoringInput, patientProfile, 0)) ??
       (await scoreWithModel(scoringInput, patientProfile, 0.3));
 
     if (!scoringResult) {
+      console.log("[scoreTrials] AI scoring returned null, using fallback scores");
       return applyFallbackScores(trials, patientProfile);
     }
 
+    console.log("[scoreTrials] AI scoring returned", scoringResult.scores.length, "scores");
     const scoreMap = new Map(scoringResult.scores.map((s) => [s.nctId, s]));
 
-    return trials.map((trial) => {
+    const result = trials.map((trial) => {
       const score = scoreMap.get(trial.nctId);
       if (score) {
         return {
@@ -58,8 +66,11 @@ export async function scoreTrials(
       }
       return trial;
     });
+
+    console.log("[scoreTrials] Final output:", result.length, "trials (no filtering applied)");
+    return result;
   } catch (err) {
-    console.error("Trial scoring failed:", err);
+    console.error("[scoreTrials] EXCEPTION — using fallback:", err);
     return applyFallbackScores(trials, patientProfile);
   }
 }

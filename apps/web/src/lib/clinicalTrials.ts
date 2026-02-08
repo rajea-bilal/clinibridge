@@ -46,16 +46,35 @@ export async function fetchTrials(
   options: FetchTrialsOptions
 ): Promise<FetchTrialsResult> {
   const { condition, synonyms = [], location: rawLocation } = options;
+
+  console.log("[fetchTrials] ===== START =====");
+  console.log("[fetchTrials] Input params:", JSON.stringify(options, null, 2));
+
   const location = normalizeLocation(rawLocation);
+  console.log(
+    "[fetchTrials] normalizeLocation:",
+    JSON.stringify({ raw: rawLocation, normalized: location })
+  );
+
   const cacheKey = buildCacheKey(condition, synonyms, location || undefined);
   const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
+    console.log(
+      "[fetchTrials] CACHE HIT — returning",
+      cached.trials.length,
+      "cached trials"
+    );
     return { trials: cached.trials };
   }
+  console.log("[fetchTrials] Cache miss, querying API...");
 
   // Build condition query: OR-joined condition + synonyms
   const conditionTerms = [condition, ...synonyms].filter(Boolean);
   const conditionQuery = conditionTerms.join(" OR ");
+  console.log(
+    "[fetchTrials] Condition query:",
+    JSON.stringify({ conditionTerms, conditionQuery })
+  );
 
   const params = new URLSearchParams({
     "query.cond": conditionQuery,
@@ -69,44 +88,98 @@ export async function fetchTrials(
   }
 
   const url = `${BASE_URL}?${params.toString()}`;
-  console.log("[ClinicalTrials] API URL:", url);
+  console.log("[fetchTrials] Full API URL:", url);
 
   try {
     const response = await requestWithRetry(
       url,
       location ? LOCATION_TIMEOUT_MS : TIMEOUT_MS
     );
+    console.log("[fetchTrials] HTTP response status:", response.status);
+
     if (!response.ok) {
-      return {
-        trials: [],
-        error:
-          response.status === 429
-            ? "ClinicalTrials.gov rate limit reached. Please try again later."
-            : `ClinicalTrials.gov returned status ${response.status}`,
-      };
+      const errMsg =
+        response.status === 429
+          ? "ClinicalTrials.gov rate limit reached. Please try again later."
+          : `ClinicalTrials.gov returned status ${response.status}`;
+      console.log("[fetchTrials] Non-OK response, returning error:", errMsg);
+      return { trials: [], error: errMsg };
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as Record<string, unknown>;
+    console.log(
+      "[fetchTrials] Raw JSON keys:",
+      Object.keys(json),
+      "| studies array?",
+      Array.isArray(json?.studies),
+      "| study count:",
+      Array.isArray(json?.studies) ? (json.studies as unknown[]).length : 0
+    );
+
     const parsed = studiesResponseSchema.safeParse(json);
     if (!parsed.success) {
+      console.log(
+        "[fetchTrials] Zod parse FAILED:",
+        parsed.error.issues.slice(0, 3)
+      );
       return {
         trials: [],
         error:
           "ClinicalTrials.gov response format changed. Please try again later.",
       };
     }
+
     const studies = parsed.data.studies ?? [];
-    const rawTrials = studies
-      .map(parseRawTrial)
-      .filter((t: TrialRaw | null): t is TrialRaw => t !== null);
+    console.log("[fetchTrials] Studies after Zod parse:", studies.length);
+
+    const rawTrials: TrialRaw[] = [];
+    let nullCount = 0;
+    for (let i = 0; i < studies.length; i++) {
+      const trial = parseRawTrial(studies[i]);
+      if (trial) {
+        rawTrials.push(trial);
+      } else {
+        nullCount++;
+        console.log(
+          "[fetchTrials] parseRawTrial returned null for study index",
+          i,
+          "| has protocolSection?",
+          !!studies[i]?.protocolSection,
+          "| nctId?",
+          (
+            (studies[i]?.protocolSection as Record<string, unknown>)
+              ?.identificationModule as Record<string, unknown>
+          )?.nctId
+        );
+      }
+    }
+    console.log(
+      "[fetchTrials] parseRawTrial results: valid =",
+      rawTrials.length,
+      "| null =",
+      nullCount
+    );
 
     const summaries = rawTrials.map(normalizeToSummary);
+    console.log("[fetchTrials] Final summaries count:", summaries.length);
+    console.log(
+      "[fetchTrials] Trial IDs:",
+      summaries.map((s) => s.nctId)
+    );
+    console.log(
+      "[fetchTrials] Trial statuses:",
+      summaries.map((s) => s.status)
+    );
+
     cache.set(cacheKey, {
       expiresAt: Date.now() + CACHE_TTL_MS,
       trials: summaries,
     });
+
+    console.log("[fetchTrials] ===== END — returning", summaries.length, "trials =====");
     return { trials: summaries };
   } catch (err: unknown) {
+    console.error("[fetchTrials] EXCEPTION:", err);
     if (err instanceof DOMException && err.name === "AbortError") {
       return {
         trials: [],

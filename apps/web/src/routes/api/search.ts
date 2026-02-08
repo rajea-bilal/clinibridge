@@ -8,9 +8,12 @@ export const Route = createFileRoute("/api/search")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        console.log("[/api/search] ===== REQUEST START =====");
+
         const ip = getClientIp(request);
         const rate = checkRateLimit(`search:${ip}`, 30, 60 * 60 * 1000);
         if (!rate.ok) {
+          console.log("[/api/search] Rate limited, returning 429");
           return new Response(
             JSON.stringify({
               trials: [],
@@ -38,13 +41,24 @@ export const Route = createFileRoute("/api/search")({
         };
 
         const { condition, age, location, medications, additionalInfo } = body;
+        console.log("[/api/search] Request body:", JSON.stringify({ condition, age, location, medications, additionalInfo }));
 
         const result = await fetchTrials({
           condition,
           location,
         });
 
+        console.log(
+          "[/api/search] fetchTrials returned:",
+          JSON.stringify({
+            trialCount: result.trials.length,
+            error: result.error ?? null,
+            trialIds: result.trials.map((t) => t.nctId),
+          })
+        );
+
         if (result.error) {
+          console.log("[/api/search] Returning error response:", result.error);
           return new Response(
             JSON.stringify({ trials: [], error: result.error }),
             {
@@ -67,8 +81,17 @@ export const Route = createFileRoute("/api/search")({
           additionalInfo: additionalInfo ?? "",
         };
 
+        console.log("[/api/search] Scoring with patient profile:", JSON.stringify(patientProfile));
         const scoredTrials = await scoreTrials(result.trials, patientProfile);
+        console.log(
+          "[/api/search] After scoring:",
+          scoredTrials.length,
+          "trials |",
+          "scores:",
+          scoredTrials.map((t) => ({ id: t.nctId, score: t.matchScore, label: t.matchLabel }))
+        );
 
+        console.log("[/api/search] ===== RETURNING", scoredTrials.length, "trials =====");
         return new Response(
           JSON.stringify({
             trials: scoredTrials,

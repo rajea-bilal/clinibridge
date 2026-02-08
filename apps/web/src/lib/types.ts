@@ -39,11 +39,17 @@ export interface TrialSummary {
   eligibility: string;
   eligibilityFull?: string; // longer version for AI scoring (up to 1500 chars)
   ageRange: string;
+  ageMinYears?: number;
+  ageMaxYears?: number;
   locations: string[];
   interventions: string[];
   sponsor: string;
   matchScore: number; // 0-100
-  matchLabel?: "Strong Match" | "Possible Match" | "Worth Exploring" | "Unlikely";
+  matchLabel?:
+    | "Strong Match"
+    | "Possible Match"
+    | "Worth Exploring"
+    | "Unlikely";
   matchReason?: string; // plain English explanation of match
   url: string;
 }

@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { z } from "zod";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -19,11 +20,26 @@ const MAX_CONVERSATIONS = 50;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const storedConversationSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  messages: z.array(z.any()),
+});
+
+const storedConversationArraySchema = z.array(storedConversationSchema);
+
 function readStore(): StoredConversation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as StoredConversation[];
+    const parsed = storedConversationArraySchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      console.warn("[chatStorage] Invalid stored conversations shape.");
+      return [];
+    }
+    return parsed.data as StoredConversation[];
   } catch {
     return [];
   }

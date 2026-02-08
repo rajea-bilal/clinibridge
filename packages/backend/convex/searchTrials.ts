@@ -1,13 +1,18 @@
 "use node";
 
-import { action } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import { action } from "./_generated/server";
 
 const BASE_URL = "https://clinicaltrials.gov/api/v2/studies";
 const TIMEOUT_MS = 15_000;
+const LOCATION_TIMEOUT_MS = 25_000;
 const PAGE_SIZE = 10;
+const RETRY_DELAYS_MS = [1000, 2000];
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const cache = new Map<string, { expiresAt: number; trials: TrialSummary[] }>();
 
 const trialSummaryValidator = v.object({
   nctId: v.string(),
@@ -46,7 +51,14 @@ export const searchTrials = action({
     searchId: v.optional(v.id("searches")),
   }),
   handler: async (ctx, args) => {
-    const { condition, synonyms = [], location, age, medications, additionalInfo } = args;
+    const {
+      condition,
+      synonyms = [],
+      location,
+      age,
+      medications,
+      additionalInfo,
+    } = args;
 
     // Build condition query
     const conditionTerms = [condition, ...(synonyms ?? [])].filter(Boolean);
@@ -64,45 +76,70 @@ export const searchTrials = action({
     }
 
     const url = `${BASE_URL}?${params.toString()}`;
+    const cacheKey = buildCacheKey(conditionTerms, location);
+    const cached = cache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { trials: cached.trials };
+    }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
+      const response = await requestWithRetry(
+        url,
+        location ? LOCATION_TIMEOUT_MS : TIMEOUT_MS
+      );
       if (!response.ok) {
         return {
           trials: [],
-          error: `ClinicalTrials.gov returned status ${response.status}`,
+          error:
+            response.status === 429
+              ? "ClinicalTrials.gov rate limit reached. Please try again later."
+              : `ClinicalTrials.gov returned status ${response.status}`,
         };
       }
 
       const data = await response.json();
-      const studies = data?.studies ?? [];
+      const studies = Array.isArray(data?.studies) ? data.studies : null;
+      if (!studies) {
+        return {
+          trials: [],
+          error:
+            "ClinicalTrials.gov response format changed. Please try again later.",
+        };
+      }
       const trials = studies
         .map(parseAndNormalize)
-        .filter((t: ReturnType<typeof parseAndNormalize>): t is NonNullable<typeof t> => t !== null);
+        .filter(
+          (
+            t: ReturnType<typeof parseAndNormalize>
+          ): t is NonNullable<typeof t> => t !== null
+        );
+      cache.set(cacheKey, {
+        expiresAt: Date.now() + CACHE_TTL_MS,
+        trials,
+      });
 
       // Save search
-      const searchId: Id<"searches"> = await ctx.runMutation(internal.searchTrialsQueries.saveSearchInternal, {
-        createdAt: Date.now(),
-        mode: "form" as const,
-        condition,
-        age,
-        location,
-        medications,
-        additionalInfo,
-        results: trials,
-      });
+      const searchId: Id<"searches"> = await ctx.runMutation(
+        internal.searchTrialsQueries.saveSearchInternal,
+        {
+          createdAt: Date.now(),
+          mode: "form" as const,
+          condition,
+          age,
+          location,
+          medications,
+          additionalInfo,
+          results: trials,
+        }
+      );
 
       return { trials, searchId };
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         return {
           trials: [],
-          error: "The search timed out. ClinicalTrials.gov may be slow — please try again.",
+          error:
+            "The search timed out. ClinicalTrials.gov may be slow — please try again.",
         };
       }
       return {
@@ -134,33 +171,61 @@ interface TrialSummary {
   url: string;
 }
 
-function parseAndNormalize(study: Record<string, unknown>): TrialSummary | null {
+function parseAndNormalize(
+  study: Record<string, unknown>
+): TrialSummary | null {
   const proto = study?.protocolSection as Record<string, unknown> | undefined;
   if (!proto) return null;
 
-  const idModule = proto.identificationModule as Record<string, unknown> | undefined;
-  const statusModule = proto.statusModule as Record<string, unknown> | undefined;
-  const descModule = proto.descriptionModule as Record<string, unknown> | undefined;
-  const designModule = proto.designModule as Record<string, unknown> | undefined;
-  const eligModule = proto.eligibilityModule as Record<string, unknown> | undefined;
-  const contactModule = proto.contactsLocationsModule as Record<string, unknown> | undefined;
-  const armsModule = proto.armsInterventionsModule as Record<string, unknown> | undefined;
-  const sponsorModule = proto.sponsorCollaboratorsModule as Record<string, unknown> | undefined;
-  const condModule = proto.conditionsModule as Record<string, unknown> | undefined;
+  const idModule = proto.identificationModule as
+    | Record<string, unknown>
+    | undefined;
+  const statusModule = proto.statusModule as
+    | Record<string, unknown>
+    | undefined;
+  const descModule = proto.descriptionModule as
+    | Record<string, unknown>
+    | undefined;
+  const designModule = proto.designModule as
+    | Record<string, unknown>
+    | undefined;
+  const eligModule = proto.eligibilityModule as
+    | Record<string, unknown>
+    | undefined;
+  const contactModule = proto.contactsLocationsModule as
+    | Record<string, unknown>
+    | undefined;
+  const armsModule = proto.armsInterventionsModule as
+    | Record<string, unknown>
+    | undefined;
+  const sponsorModule = proto.sponsorCollaboratorsModule as
+    | Record<string, unknown>
+    | undefined;
+  const condModule = proto.conditionsModule as
+    | Record<string, unknown>
+    | undefined;
 
   const nctId = (idModule?.nctId as string) ?? "";
   const briefTitle = (idModule?.briefTitle as string) ?? "";
-  if (!nctId || !briefTitle) return null;
+  if (!(nctId && briefTitle)) return null;
 
   // Locations
-  const rawLocations = (contactModule?.locations ?? []) as Array<Record<string, unknown>>;
+  const rawLocations = (contactModule?.locations ?? []) as Array<
+    Record<string, unknown>
+  >;
   const locations = rawLocations
-    .map((loc) => [loc.facility, loc.city, loc.state, loc.country].filter(Boolean).join(", "))
+    .map((loc) =>
+      [loc.facility, loc.city, loc.state, loc.country]
+        .filter(Boolean)
+        .join(", ")
+    )
     .filter(Boolean)
     .slice(0, 3);
 
   // Interventions
-  const rawInterventions = (armsModule?.interventions ?? []) as Array<Record<string, unknown>>;
+  const rawInterventions = (armsModule?.interventions ?? []) as Array<
+    Record<string, unknown>
+  >;
   const interventions = rawInterventions
     .map((i) => {
       const name = i.name as string | undefined;
@@ -181,10 +246,12 @@ function parseAndNormalize(study: Record<string, unknown>): TrialSummary | null 
   else if (maxAge) ageRange = `Up to ${maxAge}`;
 
   // Eligibility
-  const rawElig = (eligModule?.eligibilityCriteria as string) ?? "";
+  const rawElig = sanitizeEligibility(
+    eligModule?.eligibilityCriteria as string | undefined
+  );
   const eligibility = rawElig
     ? rawElig.slice(0, 500) + (rawElig.length > 500 ? "..." : "")
-    : "See full listing for eligibility details.";
+    : "Eligibility criteria not available from ClinicalTrials.gov.";
   const eligibilityFull = rawElig
     ? rawElig.slice(0, 1500) + (rawElig.length > 1500 ? "..." : "")
     : undefined;
@@ -201,8 +268,98 @@ function parseAndNormalize(study: Record<string, unknown>): TrialSummary | null 
     ageRange,
     locations,
     interventions,
-    sponsor: ((sponsorModule?.leadSponsor as Record<string, unknown>)?.name as string) ?? "Not specified",
+    sponsor:
+      ((sponsorModule?.leadSponsor as Record<string, unknown>)
+        ?.name as string) ?? "Not specified",
     matchScore: 0,
     url: `https://clinicaltrials.gov/study/${nctId}`,
   };
+}
+
+function buildCacheKey(conditionTerms: string[], location: string): string {
+  const normalizedTerms = [...conditionTerms]
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .sort();
+  return JSON.stringify({
+    conditionTerms: normalizedTerms.map((t) => t.toLowerCase()),
+    location: location.trim().toLowerCase(),
+  });
+}
+
+function buildCacheKey(conditionTerms: string[], location: string): string {
+  const normalizedTerms = [...conditionTerms]
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .sort();
+  return JSON.stringify({
+    conditionTerms: normalizedTerms.map((t) => t.toLowerCase()),
+    location: location.trim().toLowerCase(),
+  });
+}
+
+function sanitizeEligibility(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  const cleaned = raw
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+
+  return cleaned || undefined;
+}
+
+async function requestWithRetry(
+  url: string,
+  timeoutMs: number
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(url, timeoutMs);
+      if (response.ok) return response;
+
+      const shouldRetry = response.status === 429 || response.status >= 500;
+      if (!shouldRetry || attempt === RETRY_DELAYS_MS.length) {
+        return response;
+      }
+    } catch (err: unknown) {
+      lastError = err;
+      if (
+        err instanceof DOMException &&
+        err.name === "AbortError" &&
+        attempt < RETRY_DELAYS_MS.length
+      ) {
+        await sleep(RETRY_DELAYS_MS[attempt]);
+        continue;
+      }
+      throw err;
+    }
+
+    await sleep(RETRY_DELAYS_MS[attempt]);
+  }
+
+  throw lastError ?? new Error("Unknown request error");
+}
+
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

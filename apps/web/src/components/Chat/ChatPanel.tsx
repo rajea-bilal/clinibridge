@@ -1,22 +1,22 @@
 import { useChat } from "@ai-sdk/react";
+import { Icon } from "@iconify/react";
 import type { UIMessage } from "ai";
-import { MessageList } from "./MessageList";
+import { ArrowUp, Square } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  PromptInput,
-  PromptInputTextarea,
-  PromptInputActions,
-  PromptInputAction,
-} from "@/components/prompt-kit/prompt-input";
-import {
-  ChatContainerRoot,
   ChatContainerContent,
+  ChatContainerRoot,
   ChatContainerScrollAnchor,
 } from "@/components/prompt-kit/chat-container";
+import {
+  PromptInput,
+  PromptInputAction,
+  PromptInputActions,
+  PromptInputTextarea,
+} from "@/components/prompt-kit/prompt-input";
 import { ScrollButton } from "@/components/prompt-kit/scroll-button";
-import { Icon } from "@iconify/react";
-import { ArrowUp, Square } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
 import { saveConversation } from "@/lib/chatStorage";
+import { MessageList } from "./MessageList";
 
 interface ChatPanelProps {
   conversationId: string;
@@ -40,6 +40,7 @@ export function ChatPanel({
 
   // ── Persist to localStorage on message changes ──────────────────────────
   const prevLengthRef = useRef(messages.length);
+  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep a ref to latest messages so the unmount cleanup can access them
   const messagesRef = useRef(messages);
@@ -47,31 +48,50 @@ export function ChatPanel({
 
   const persist = useCallback(() => {
     if (messages.length > 0) {
-      console.debug("[ChatPanel] persisting", conversationId, messages.length, "messages");
+      console.debug(
+        "[ChatPanel] persisting",
+        conversationId,
+        messages.length,
+        "messages"
+      );
       saveConversation(conversationId, messages);
       onConversationUpdate?.();
     }
   }, [conversationId, messages, onConversationUpdate]);
 
+  const schedulePersist = useCallback(() => {
+    if (messages.length === 0) return;
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
+    }
+    persistTimeoutRef.current = setTimeout(() => {
+      persist();
+      persistTimeoutRef.current = null;
+    }, 500);
+  }, [messages.length, persist]);
+
   // Save whenever message count changes
   useEffect(() => {
     if (messages.length !== prevLengthRef.current) {
       prevLengthRef.current = messages.length;
-      persist();
+      schedulePersist();
     }
-  }, [messages.length, persist]);
+  }, [messages.length, schedulePersist]);
 
   // Save when streaming finishes
   useEffect(() => {
     if (status === "ready" && messages.length > 0) {
-      persist();
+      schedulePersist();
     }
-  }, [status, messages.length, persist]);
+  }, [status, messages.length, schedulePersist]);
 
   // Save on unmount (handles "New Session" / conversation switch)
   useEffect(() => {
     const id = conversationId;
     return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
       const msgs = messagesRef.current;
       if (msgs.length > 0) {
         console.debug("[ChatPanel] unmount save", id, msgs.length, "messages");
@@ -92,28 +112,41 @@ export function ChatPanel({
   }
 
   return (
-    <div className="flex h-full flex-col relative">
+    <div className="relative flex h-full flex-col">
       {/* ── Atmospheric depth layers (decorative only) ── */}
 
       {/* Top-center radial emerald mesh — very faint */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-emerald-900/[0.03] via-transparent to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="pointer-events-none absolute top-0 left-1/2 z-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-gradient-to-b from-emerald-900/[0.03] via-transparent to-transparent blur-[100px]" />
 
       {/* Center vignette — darkens edges subtly for depth */}
-      <div className="absolute inset-0 pointer-events-none z-0" style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 40%, transparent 0%, rgba(2,2,2,0.4) 100%)' }} />
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 60% at 50% 40%, transparent 0%, rgba(2,2,2,0.4) 100%)",
+        }}
+      />
 
       {/* Subtle geometric grid pattern — barely visible */}
-      <div className="absolute inset-0 pointer-events-none z-0 opacity-[0.015]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
+      <div
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.015]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)",
+          backgroundSize: "80px 80px",
+        }}
+      />
 
       {/* Diagonal light streak — cinematic atmosphere */}
-      <div className="absolute top-0 right-[20%] w-[1px] h-[40%] bg-gradient-to-b from-emerald-500/[0.06] via-white/[0.02] to-transparent pointer-events-none z-0 rotate-[15deg] origin-top" />
+      <div className="pointer-events-none absolute top-0 right-[20%] z-0 h-[40%] w-[1px] origin-top rotate-[15deg] bg-gradient-to-b from-emerald-500/[0.06] via-white/[0.02] to-transparent" />
 
       {/* Messages with smart auto-scroll */}
-      <ChatContainerRoot className="flex-1 pb-44 relative z-10">
-        <ChatContainerContent className="w-full max-w-[800px] mx-auto px-6 py-16 md:py-20 flex flex-col gap-12">
+      <ChatContainerRoot className="relative z-10 flex-1 pb-44">
+        <ChatContainerContent className="mx-auto flex w-full max-w-[800px] flex-col gap-12 px-6 py-16 md:py-20">
           <MessageList
             messages={messages}
-            status={status}
             onSuggestionClick={handleSuggestionClick}
+            status={status}
           />
         </ChatContainerContent>
         <ChatContainerScrollAnchor />
@@ -124,40 +157,40 @@ export function ChatPanel({
       </ChatContainerRoot>
 
       {/* Input — fixed to bottom, above atmosphere */}
-      <div className="absolute bottom-0 inset-x-0 z-20">
-        <div className="h-10 bg-gradient-to-t from-neutral-950 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <div className="pointer-events-none h-10 bg-gradient-to-t from-neutral-950 to-transparent" />
 
-        <div className="bg-neutral-950 px-6 pb-5 pt-1">
-          <div className="w-full max-w-[800px] mx-auto">
-            <div className="relative group">
+        <div className="bg-neutral-950 px-6 pt-1 pb-5">
+          <div className="mx-auto w-full max-w-[800px]">
+            <div className="group relative">
               {/* Understated emerald glow — invisible by default, barely visible on focus */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/[0.05] via-transparent to-teal-500/[0.05] rounded-[2rem] blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-1000" />
+              <div className="absolute -inset-2 rounded-[2rem] bg-gradient-to-r from-emerald-500/[0.05] via-transparent to-teal-500/[0.05] opacity-0 blur-2xl transition-opacity duration-1000 group-focus-within:opacity-100" />
 
               {/* Glass container */}
               <PromptInput
-                value={input}
-                onValueChange={setInput}
+                className="relative overflow-hidden rounded-[1.25rem] border-white/[0.05] bg-neutral-900/40 backdrop-blur-2xl transition-all duration-500 focus-within:border-white/[0.08]"
                 isLoading={isLoading}
                 onSubmit={handleSubmit}
-                className="relative bg-neutral-900/40 backdrop-blur-2xl border-white/[0.05] rounded-[1.25rem] overflow-hidden transition-all duration-500 focus-within:border-white/[0.08]"
+                onValueChange={setInput}
+                value={input}
               >
                 <PromptInputTextarea
+                  className="max-h-48 min-h-[52px] w-full resize-none border-none bg-transparent px-6 py-4 font-light text-[15px] text-white leading-relaxed shadow-none placeholder:text-neutral-600 focus:outline-none focus-visible:ring-0"
                   placeholder="Describe a condition, age, and location..."
-                  className="w-full bg-transparent text-white placeholder:text-neutral-600 font-light text-[15px] px-6 py-4 min-h-[52px] max-h-48 resize-none focus:outline-none leading-relaxed border-none shadow-none focus-visible:ring-0"
                 />
                 <PromptInputActions className="justify-between px-5 pb-4">
                   <div className="flex items-center gap-1">
                     <button
-                      type="button"
-                      className="p-2 rounded-lg text-neutral-600 hover:text-white/60 hover:bg-white/[0.03] transition-colors"
                       aria-label="Upload"
+                      className="rounded-lg p-2 text-neutral-600 transition-colors hover:bg-white/[0.03] hover:text-white/60"
+                      type="button"
                     >
                       <Icon icon="solar:paperclip-linear" width={18} />
                     </button>
                     <button
-                      type="button"
-                      className="p-2 rounded-lg text-neutral-600 hover:text-white/60 hover:bg-white/[0.03] transition-colors md:hidden"
                       aria-label="Voice"
+                      className="rounded-lg p-2 text-neutral-600 transition-colors hover:bg-white/[0.03] hover:text-white/60 md:hidden"
+                      type="button"
                     >
                       <Icon icon="solar:microphone-linear" width={18} />
                     </button>
@@ -166,9 +199,9 @@ export function ChatPanel({
                   {isLoading ? (
                     <PromptInputAction tooltip="Stop generating">
                       <button
-                        type="button"
-                        className="size-9 rounded-xl bg-white/90 text-neutral-950 flex items-center justify-center hover:bg-white transition-all duration-200"
+                        className="flex size-9 items-center justify-center rounded-xl bg-white/90 text-neutral-950 transition-all duration-200 hover:bg-white"
                         onClick={stop}
+                        type="button"
                       >
                         <Square className="size-3" />
                       </button>
@@ -176,10 +209,10 @@ export function ChatPanel({
                   ) : (
                     <PromptInputAction tooltip="Send message">
                       <button
-                        type="button"
-                        className="size-9 rounded-xl bg-white/90 text-neutral-950 flex items-center justify-center hover:bg-white transition-all duration-200 disabled:opacity-15 disabled:hover:bg-white/90"
+                        className="flex size-9 items-center justify-center rounded-xl bg-white/90 text-neutral-950 transition-all duration-200 hover:bg-white disabled:opacity-15 disabled:hover:bg-white/90"
                         disabled={!input.trim()}
                         onClick={handleSubmit}
+                        type="button"
                       >
                         <ArrowUp className="size-4" strokeWidth={2} />
                       </button>
@@ -191,7 +224,7 @@ export function ChatPanel({
               {/* Disclaimer with emerald dot accent */}
               <div className="mt-3 flex items-center justify-center gap-2">
                 <span className="h-[1px] w-4 bg-gradient-to-r from-transparent to-emerald-500/20" />
-                <p className="text-neutral-600 text-[10px] tracking-wide">
+                <p className="text-[10px] text-neutral-600 tracking-wide">
                   CliniBridge is an AI assistant — not a substitute for medical
                   advice.
                 </p>

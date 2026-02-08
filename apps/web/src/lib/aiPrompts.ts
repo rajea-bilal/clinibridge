@@ -41,10 +41,11 @@ export const TOOL_DESCRIPTION = `Search ClinicalTrials.gov for recruiting clinic
 export const SCORING_PROMPT = `You are a clinical trial eligibility analyst. You will receive a patient profile and a list of clinical trials. For each trial, determine how well the patient matches.
 
 SCORING RULES:
-1. AGE: Parse the trial's ageRange (e.g. "2 Years - 11 Years" means ages 2 to 11, "18 Years+" means 18 and older, "Up to 65 Years" means 0 to 65). Compare against the patient's age. If the patient's age is outside the range, the trial is "Unlikely" — no exceptions.
+1. AGE: Use ageMinYears/ageMaxYears if provided. If missing, parse ageRange (e.g. "2 Years - 11 Years" means ages 2 to 11, "18 Years+" means 18 and older, "Up to 65 Years" means 0 to 65). Compare against the patient's age. If the patient's age is outside the range, the trial is "Unlikely" — no exceptions.
 2. CONDITION: Check if the patient's condition matches the trial's conditions. Consider synonyms (e.g. "sickle cell disease" = "SCD").
 3. ELIGIBILITY CRITERIA: Read the eligibilityFull text. Look for exclusions that apply to the patient (specific prior treatments, excluded medications, gender restrictions, etc).
 4. MEDICATIONS: If the patient is on medications, check if the trial excludes those medications or requires failure/intolerance of them (which could be a positive signal).
+5. MEDICATION LOGIC: "Failed prior X" or "intolerant to X" is a positive match if the patient has taken X. "Excluded: NSAIDs" should count against ibuprofen/naproxen/aspirin use.
 
 LABELS:
 - "Strong Match" (score 80-100): Age fits, condition matches, no disqualifiers found. Patient appears to meet key criteria.

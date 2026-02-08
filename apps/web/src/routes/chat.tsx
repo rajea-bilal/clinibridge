@@ -9,21 +9,27 @@ import {
 import type { ConversationMeta } from "@/lib/chatStorage";
 import { Icon } from "@iconify/react";
 import { useState, useCallback, useEffect } from "react";
+import { z } from "zod";
 
 // @ts-expect-error — route path not in generated tree until `bun run dev` regenerates it
 export const Route = createFileRoute("/chat")({
   component: ChatPage,
+  validateSearch: z.object({
+    c: z.string().optional(),
+  }),
 });
 
 function ChatPage() {
   const [conversations, setConversations] = useState<ConversationMeta[]>(
     () => listConversations()
   );
-  const [activeId, setActiveId] = useState<string>(() => {
-    // Resume most recent conversation or start fresh
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const activeId = (() => {
+    if (search.c) return search.c;
     const existing = listConversations();
     return existing.length > 0 ? existing[0].id : generateId();
-  });
+  })();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const refreshConversations = useCallback(() => {
@@ -36,14 +42,20 @@ function ChatPage() {
     refreshConversations();
   }, [activeId, refreshConversations]);
 
+  useEffect(() => {
+    if (search.c !== activeId) {
+      navigate({ search: { ...search, c: activeId }, replace: true });
+    }
+  }, [activeId, navigate, search]);
+
   function handleNewChat() {
     const newId = generateId();
-    setActiveId(newId);
+    navigate({ search: { ...search, c: newId } });
     setSidebarOpen(false);
   }
 
   function handleSelectConversation(id: string) {
-    setActiveId(id);
+    navigate({ search: { ...search, c: id } });
   }
 
   // Load initial messages for the active conversation
@@ -56,7 +68,13 @@ function ChatPage() {
     setConversations(updated);
     // If active was deleted, switch to most recent or new
     if (!updated.find((c) => c.id === activeId)) {
-      setActiveId(updated.length > 0 ? updated[0].id : generateId());
+      navigate({
+        search: {
+          ...search,
+          c: updated.length > 0 ? updated[0].id : generateId(),
+        },
+        replace: true,
+      });
     }
   }
 

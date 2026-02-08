@@ -15,6 +15,18 @@ const studiesResponseSchema = z.object({
   studies: z.array(z.record(z.unknown())).optional(),
 });
 
+/** Phrases that mean "no location filter" — user wants worldwide results. */
+const GLOBAL_LOCATION_PATTERNS =
+  /^(anywhere|everywhere|worldwide|any\s*(where\s+in\s+the\s+)?world|global(ly)?|no\s*preference|all\s*countries|international(ly)?|any\s*location|any\s*country|doesn'?t?\s*matter|does\s*not\s*matter)$/i;
+
+/** Returns empty string if location is a "worldwide" phrase, otherwise trims it. */
+function normalizeLocation(raw?: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  return GLOBAL_LOCATION_PATTERNS.test(trimmed) ? "" : trimmed;
+}
+
 interface FetchTrialsOptions {
   condition: string;
   synonyms?: string[];
@@ -33,8 +45,9 @@ interface FetchTrialsResult {
 export async function fetchTrials(
   options: FetchTrialsOptions
 ): Promise<FetchTrialsResult> {
-  const { condition, synonyms = [], location } = options;
-  const cacheKey = buildCacheKey(condition, synonyms, location);
+  const { condition, synonyms = [], location: rawLocation } = options;
+  const location = normalizeLocation(rawLocation);
+  const cacheKey = buildCacheKey(condition, synonyms, location || undefined);
   const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return { trials: cached.trials };
@@ -56,6 +69,7 @@ export async function fetchTrials(
   }
 
   const url = `${BASE_URL}?${params.toString()}`;
+  console.log("[ClinicalTrials] API URL:", url);
 
   try {
     const response = await requestWithRetry(

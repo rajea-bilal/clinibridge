@@ -12,6 +12,18 @@ const PAGE_SIZE = 10;
 const RETRY_DELAYS_MS = [1000, 2000];
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Phrases that mean "no location filter" — user wants worldwide results. */
+const GLOBAL_LOCATION_PATTERNS =
+  /^(anywhere|everywhere|worldwide|any\s*(where\s+in\s+the\s+)?world|global(ly)?|no\s*preference|all\s*countries|international(ly)?|any\s*location|any\s*country|doesn'?t?\s*matter|does\s*not\s*matter)$/i;
+
+/** Returns empty string if location is a "worldwide" phrase, otherwise trims it. */
+function normalizeLocation(raw?: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  return GLOBAL_LOCATION_PATTERNS.test(trimmed) ? "" : trimmed;
+}
+
 const cache = new Map<string, { expiresAt: number; trials: TrialSummary[] }>();
 
 const trialSummaryValidator = v.object({
@@ -54,11 +66,13 @@ export const searchTrials = action({
     const {
       condition,
       synonyms = [],
-      location,
+      location: rawLocation,
       age,
       medications,
       additionalInfo,
     } = args;
+
+    const location = normalizeLocation(rawLocation);
 
     // Build condition query
     const conditionTerms = [condition, ...(synonyms ?? [])].filter(Boolean);
@@ -76,6 +90,7 @@ export const searchTrials = action({
     }
 
     const url = `${BASE_URL}?${params.toString()}`;
+    console.log("[ClinicalTrials] API URL:", url);
     const cacheKey = buildCacheKey(conditionTerms, location);
     const cached = cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
@@ -274,17 +289,6 @@ function parseAndNormalize(
     matchScore: 0,
     url: `https://clinicaltrials.gov/study/${nctId}`,
   };
-}
-
-function buildCacheKey(conditionTerms: string[], location: string): string {
-  const normalizedTerms = [...conditionTerms]
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .sort();
-  return JSON.stringify({
-    conditionTerms: normalizedTerms.map((t) => t.toLowerCase()),
-    location: location.trim().toLowerCase(),
-  });
 }
 
 function buildCacheKey(conditionTerms: string[], location: string): string {

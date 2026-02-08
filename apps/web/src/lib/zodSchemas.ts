@@ -8,7 +8,10 @@ export const searchTrialsToolSchema = z.object({
   age: z.number().describe("Patient age in years"),
   location: z
     .string()
-    .describe("City, state, or country to filter trials by location"),
+    .optional()
+    .describe(
+      "City, state, or country to filter trials by location. Omit or leave empty for worldwide search — do NOT pass phrases like 'anywhere in the world'."
+    ),
   synonyms: z
     .array(z.string())
     .optional()

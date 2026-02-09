@@ -26,6 +26,9 @@ isProject: false
 - [x] form-ui-visual-consistency
 - [x] code-review-and-error-handling
 - [x] refined-trial-search-logic
+- [x] feature-understand-this-trial
+- [x] bugfix-duplicate-chat-output
+- [x] bugfix-eligibility-validation-and-ux
 
 ## Notes
 
@@ -227,3 +230,120 @@ isProject: false
 - **Fallback search strategy**: Refactored `fetchTrials()` to use a new `runSearch()` helper and a 3-attempt fallback cascade: (1) full query with condition + synonyms + location, (2) primary condition + location only (drops synonyms that may narrow results), (3) primary condition only, worldwide (drops location filter). Returns the first non-empty result set. Each attempt is individually logged with its label for debugging.
 - **Zod v4 compatibility fix**: Changed `z.record(z.unknown())` to `z.record(z.string(), z.unknown())` in `studiesResponseSchema`. Zod v4 requires explicit key+value validators. This was a latent bug — never triggered before because the API always returned 0 results due to the status/location issues above.
 - **Verified**: Rett syndrome search now returns 10 active trials in the US (was 0). Includes gene therapy (NGN-401), Bionetide (NA-921), Trofinetide cognitive study, Rett Global Registry, and more.
+
+### feature-understand-this-trial (completed)
+
+**Goal:** On-demand, per-trial eligibility translation into plain English with a preparation checklist, without claiming eligibility.
+
+#### Step 1 — Convex schema + cache table
+- Added `eligibilityCache` table to `packages/backend/convex/schema.ts`
+- Fields: `nctId`, `eligibilityCriteria`, `minimumAge`, `maximumAge`, `sex`, `healthyVolunteers`, `fetchedAt`
+- Index: `by_nctId`
+- Convex typecheck passes
+
+#### Step 2 — Convex action to fetch + cache raw criteria
+- Created `packages/backend/convex/eligibilityQueries.ts` — internal query (`getCachedEligibility`) + mutation (`upsertEligibilityCache`). Separated from action file because `"use node"` files can only contain actions.
+- Created `packages/backend/convex/eligibility.ts` — public action `getEligibilityBreakdown`
+- Fetches from `https://clinicaltrials.gov/api/v2/studies/{NCT_ID}` with 15s timeout
+- Extracts `eligibilityModule` fields (criteria, age, sex, healthyVolunteers)
+- Cache-first with 7-day TTL; upserts on miss
+- Handles: no criteria, partial criteria, API errors (returns structured fallback)
+- Added `zod` to backend package for response validation
+
+#### Step 3 — LLM integration + Zod validation
+- System prompt + user prompt match the plan exactly
+- Zod schema validates: `trialId`, `disclaimer`, `inclusionCriteria[]`, `exclusionCriteria[]`, `preparationChecklist[]`, `meta`
+- Each criterion: `original`, `plainEnglish`, `status` (met/not_met/unknown), `reason`
+- Calls `gpt-4o-mini` with `response_format: { type: "json_object" }`
+- On validation failure: retries once with "fix JSON" prompt
+- On second failure: returns fallback with raw criteria text + checklist
+- Parses raw eligibility into inclusion/exclusion sections before sending to LLM
+- Trims input to ~8000 chars if needed
+
+#### Step 4 — Frontend components
+- Created `apps/web/src/components/Eligibility/` with:
+  - `EligibilityDrawer.tsx` — Vaul drawer (mobile) / Radix Dialog (desktop), renders disclaimer → checklist → criteria
+  - `CriteriaSection.tsx` — Collapsible section with title, count, and status summary (X met, Y to discuss, Z may not apply)
+  - `CriteriaItem.tsx` — Status icon + pill (✅ met / ❓ to discuss / ❌ may not apply), plain English, reason
+  - `EligibilitySkeleton.tsx` — Shimmer loading placeholder
+  - `types.ts` — TypeScript interfaces mirroring the Convex action return type
+  - `index.ts` — Barrel exports
+- Installed: `vaul` (bottom sheet), `@radix-ui/react-dialog` (modal)
+
+#### Step 5 — Wire UI to Convex action
+- `TrialCard.tsx` — Added "Understand this trial" emerald CTA button, eligibility state, `useAction(api.eligibility.getEligibilityBreakdown)`, opens `EligibilityDrawer`. Caches result in component state (won't re-fetch same trial).
+- `TrialResultsList.tsx` — Accepts + passes `patientProfile` to `TrialCard`
+- `TrialCardsFromChat.tsx` — Extracts `patientProfile` from tool output, passes to `TrialCard`
+- `MessageList.tsx` — Passes `patientProfile` from `searchTrials` tool output through to `TrialCardsFromChat`
+- `find.tsx` — Captures form input as `PatientProfileForEligibility`, passes to `TrialResultsList`
+- `results.$id.tsx` — Reconstructs `patientProfile` from saved search data
+- Data flow: User clicks button → drawer/modal opens → skeleton → Convex action (cache → API → LLM → Zod) → render disclaimer → checklist → criteria
+
+#### Step 6 — Polish
+- Disclaimer always visible at top of breakdown (amber card matching app style)
+- ❓ items labeled "Things to discuss with the coordinator"
+- Copy tone: plain English suitable for a 16-year-old (LLM prompt enforces this)
+- Mobile: bottom sheet drawer (85vh), criteria collapsed by default
+- Desktop: centered modal (max-w-2xl, 85vh), inclusion criteria open by default
+- Status pills: emerald (met), amber (to discuss), red (may not apply)
+- Error state with retry suggestion
+- No eligibility claims anywhere — only "helps you understand what the trial requires"
+
+#### New files
+- `packages/backend/convex/eligibility.ts`
+- `packages/backend/convex/eligibilityQueries.ts`
+- `apps/web/src/components/Eligibility/EligibilityDrawer.tsx`
+- `apps/web/src/components/Eligibility/CriteriaSection.tsx`
+- `apps/web/src/components/Eligibility/CriteriaItem.tsx`
+- `apps/web/src/components/Eligibility/EligibilitySkeleton.tsx`
+- `apps/web/src/components/Eligibility/types.ts`
+- `apps/web/src/components/Eligibility/index.ts`
+
+#### Modified files
+- `packages/backend/convex/schema.ts` — added `eligibilityCache` table
+- `apps/web/src/components/Trials/TrialCard.tsx` — added button + drawer + action call
+- `apps/web/src/components/Trials/TrialResultsList.tsx` — passes `patientProfile`
+- `apps/web/src/components/Chat/TrialCardsFromChat.tsx` — passes `patientProfile`
+- `apps/web/src/components/Chat/MessageList.tsx` — extracts `patientProfile` from tool output
+- `apps/web/src/routes/find.tsx` — captures `patientProfile` from form
+- `apps/web/src/routes/results.$id.tsx` — reconstructs `patientProfile` from saved search
+
+#### Packages added
+- `vaul` (web) — bottom sheet drawer
+- `@radix-ui/react-dialog` (web) — desktop modal
+- `zod` (backend) — LLM response validation
+
+### bugfix-duplicate-chat-output (completed)
+
+- **Bug**: After the AI called `searchTrials` and received scored trials, the chat response duplicated trial summaries — first a "summary of ones that suit your profile" block, then a "please review the following details" block with the same trials.
+- **Root cause**: `SYSTEM_PROMPT` in `aiPrompts.ts` had two instruction blocks that both told the AI to describe trials:
+  1. "AFTER RECEIVING TRIAL RESULTS — SCORING" — instructed the chat AI to re-score every trial (age check, eligibility check, assign labels, filter, sort). Redundant because `scoreTrials()` already does this in a separate structured AI call.
+  2. "RESPONSE FORMAT" — instructed the AI to output a formatted bullet list of the same trials.
+  The model interpreted these as two sequential tasks → wrote trial descriptions twice.
+- **Fix**: Replaced the scoring section with a note that trials come pre-scored (with `matchLabel` and `matchReason` already populated by `scoreTrials()`). Added explicit instruction: "Do NOT output multiple sections. Your entire response about the trials should be ONE block — summary sentence, bullet list, closing note. Nothing else."
+- **File changed**: `apps/web/src/lib/aiPrompts.ts`
+
+### bugfix-eligibility-validation-and-ux (completed)
+
+- **Bug 1 — `ArgumentValidationError` on `healthyVolunteers`**: ClinicalTrials.gov API returns `healthyVolunteers` as a boolean (`true`/`false`), but the Convex schema and `upsertEligibilityCache` mutation expected `v.string()`. Caused the action to throw during cache write, hitting the catch block fallback with no raw criteria.
+- **Fix**: In `fetchEligibilityFromApi()`, all fields that could come back as non-string types (`healthyVolunteers`, `minimumAge`, `maximumAge`, `sex`) are now coerced with `String()` before storing. Schema stays as `v.string()`.
+- **Bug 2 — LLM response failing Zod validation**: The strict Zod schema rejected valid-but-slightly-different LLM outputs (e.g. `meta.notes: null`, missing `trialId`, casing variations like `"Not Met"` instead of `"not_met"`). Both attempts failed → fallback with raw criteria blob shown.
+- **Fix**: Made Zod schema lenient:
+  - `status` accepts any casing/spacing and normalizes (`"Not Met"` → `"not_met"`, `"Met"` → `"met"`, etc.)
+  - `meta` fully optional with sensible defaults (source, criteriaPresent, notes)
+  - `notes` accepts `string | null`, transforms null → `""`
+  - All top-level fields have `.optional().default(...)` so partial responses still parse
+  - `.passthrough()` allows extra keys; return block strips them for Convex validator
+  - Added error logging to both catch blocks (logs Zod error message + raw response keys)
+- **Bug 3 — No loading feedback**: User stared at empty drawer while the action ran (5-10s).
+- **Fix**: Upgraded `EligibilitySkeleton` with a progress indicator showing rotating messages:
+  - "Fetching eligibility criteria from ClinicalTrials.gov..."
+  - "Translating medical language into plain English..."
+  - "Comparing criteria against your profile..."
+  - "Almost there — building your personalised breakdown..."
+  Messages rotate every 3.5s with subtitle "This usually takes 5–10 seconds".
+- **UX addition**: Added scroll hint between checklist and criteria sections — bouncing arrow + "Scroll for full eligibility criteria" text so users know there's more content below.
+- **Files changed**:
+  - `packages/backend/convex/eligibility.ts` — String coercion, lenient Zod schema, error logging, explicit return
+  - `apps/web/src/components/Eligibility/EligibilitySkeleton.tsx` — Progress messages
+  - `apps/web/src/components/Eligibility/EligibilityDrawer.tsx` — Scroll hint

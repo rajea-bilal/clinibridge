@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { TrialSummary } from "@/lib/types";
 import { TrialCard } from "@/components/Trials/TrialCard";
+import type { PatientProfileForEligibility } from "@/components/Trials/TrialCard";
 import { NoResults } from "@/components/Trials/NoResults";
 import { Disclaimer } from "@/components/Shared/Disclaimer";
 import { Icon } from "@iconify/react";
@@ -12,6 +13,7 @@ interface TrialCardsFromChatProps {
     trials: TrialSummary[];
     error?: string;
     count?: number;
+    patientProfile?: PatientProfileForEligibility;
   };
 }
 
@@ -75,7 +77,7 @@ export function TrialCardsFromChat({ data }: TrialCardsFromChatProps) {
             className="trial-card-enter"
             style={{ animationDelay: `${idx * 80}ms` }}
           >
-            <TrialCard trial={trial} />
+            <TrialCard trial={trial} patientProfile={data.patientProfile} />
           </div>
         ))}
       </div>

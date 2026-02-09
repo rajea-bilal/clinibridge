@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { TrialSummary } from "@/lib/types";
 import { TrialCard } from "./TrialCard";
+import type { PatientProfileForEligibility } from "./TrialCard";
 import { NoResults } from "./NoResults";
 import { Disclaimer } from "@/components/Shared/Disclaimer";
 import { Icon } from "@iconify/react";
@@ -13,6 +14,7 @@ interface TrialResultsListProps {
   isLoading?: boolean;
   /** Total trials returned from API before filtering (optional) */
   totalFromApi?: number;
+  patientProfile?: PatientProfileForEligibility;
 }
 
 export function TrialResultsList({
@@ -20,6 +22,7 @@ export function TrialResultsList({
   error,
   isLoading,
   totalFromApi,
+  patientProfile,
 }: TrialResultsListProps) {
   const [showAll, setShowAll] = useState(false);
 
@@ -85,7 +88,7 @@ export function TrialResultsList({
             className="trial-card-enter"
             style={{ animationDelay: `${i * 100}ms` }}
           >
-            <TrialCard trial={trial} />
+            <TrialCard trial={trial} patientProfile={patientProfile} />
           </div>
         ))}
       </div>

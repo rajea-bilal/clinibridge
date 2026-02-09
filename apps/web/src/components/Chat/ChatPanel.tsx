@@ -39,66 +39,103 @@ export function ChatPanel({
   const isLoading = status === "streaming" || status === "submitted";
 
   // ── Persist to localStorage on message changes ──────────────────────────
-  const prevLengthRef = useRef(messages.length);
-  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Keep a ref to latest messages so the unmount cleanup can access them
+  // All persistence uses refs so callbacks never go stale. This prevents the
+  // cascading recreation problem where `persist` depended on `messages`,
+  // causing `schedulePersist` to rebuild every streaming token.
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
-  const persist = useCallback(() => {
-    if (messages.length > 0) {
-      console.debug(
-        "[ChatPanel] persisting",
-        conversationId,
-        messages.length,
-        "messages"
-      );
-      saveConversation(conversationId, messages);
-      onConversationUpdate?.();
-    }
-  }, [conversationId, messages, onConversationUpdate]);
+  const onConversationUpdateRef = useRef(onConversationUpdate);
+  onConversationUpdateRef.current = onConversationUpdate;
 
-  const schedulePersist = useCallback(() => {
-    if (messages.length === 0) return;
-    if (persistTimeoutRef.current) {
-      clearTimeout(persistTimeoutRef.current);
-    }
-    persistTimeoutRef.current = setTimeout(() => {
-      persist();
-      persistTimeoutRef.current = null;
-    }, 500);
-  }, [messages.length, persist]);
+  const prevLengthRef = useRef(messages.length);
+  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Save whenever message count changes
+  // Always reads from refs — no stale closures, stable identity.
+  const persistNow = useCallback(() => {
+    const msgs = messagesRef.current;
+    if (msgs.length > 0) {
+      saveConversation(conversationId, msgs);
+      onConversationUpdateRef.current?.();
+    }
+  }, [conversationId]);
+
+  const schedulePersist = useCallback(
+    (delayMs = 300) => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+      persistTimeoutRef.current = setTimeout(() => {
+        persistNow();
+        persistTimeoutRef.current = null;
+      }, delayMs);
+    },
+    [persistNow]
+  );
+
+  // Save IMMEDIATELY when a new message is added (count changes).
+  // This is the critical path — debouncing here is what loses data.
   useEffect(() => {
     if (messages.length !== prevLengthRef.current) {
       prevLengthRef.current = messages.length;
-      schedulePersist();
+      persistNow(); // immediate — not debounced
     }
-  }, [messages.length, schedulePersist]);
+  }, [messages.length, persistNow]);
 
-  // Save when streaming finishes
+  // Save when streaming finishes (captures final streamed content).
   useEffect(() => {
     if (status === "ready" && messages.length > 0) {
-      schedulePersist();
+      persistNow(); // immediate — streaming just ended, save the final state
     }
-  }, [status, messages.length, schedulePersist]);
+  }, [status, messages.length, persistNow]);
 
-  // Save on unmount (handles "New Session" / conversation switch)
+  // Debounced save during active streaming so we don't lose partial content.
   useEffect(() => {
-    const id = conversationId;
+    if (status === "streaming") {
+      schedulePersist(500);
+    }
+    return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+    };
+  }, [status, messages, schedulePersist]);
+
+  // Save on unmount (handles "New Session" / conversation switch).
+  useEffect(() => {
     return () => {
       if (persistTimeoutRef.current) {
         clearTimeout(persistTimeoutRef.current);
       }
       const msgs = messagesRef.current;
       if (msgs.length > 0) {
-        console.debug("[ChatPanel] unmount save", id, msgs.length, "messages");
-        saveConversation(id, msgs);
+        saveConversation(conversationId, msgs);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
+  // Save on full page refresh / tab close / tab switch.
+  // React cleanup doesn't run on hard navigations.
+  useEffect(() => {
+    const save = () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+      const msgs = messagesRef.current;
+      if (msgs.length > 0) {
+        saveConversation(conversationId, msgs);
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") save();
+    };
+    window.addEventListener("beforeunload", save);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("beforeunload", save);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [conversationId]);
 
   function handleSubmit() {

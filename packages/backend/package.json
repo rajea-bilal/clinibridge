@@ -22,6 +22,7 @@
     "@convex-dev/resend": "^0.1.2-beta.2",
     "better-auth": "catalog:",
     "convex": "catalog:",
-    "openai": "^4.90.0"
+    "openai": "^4.90.0",
+    "zod": "^4.3.6"
   }
 }

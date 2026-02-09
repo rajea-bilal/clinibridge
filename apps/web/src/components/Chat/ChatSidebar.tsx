@@ -2,6 +2,7 @@ import type { ConversationMeta } from "@/lib/chatStorage";
 import { deleteConversation, clearAllConversations } from "@/lib/chatStorage";
 import { cn } from "@/lib/utils";
 import { Icon } from "@iconify/react";
+import { Link } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -133,8 +134,8 @@ export function ChatSidebar({
       >
         {/* Logo Header */}
         <div className="p-5 pb-4">
-          <a
-            href="/"
+          <Link
+            to="/"
             className="flex items-center gap-2.5 mb-5 group/logo hover:opacity-80 transition-opacity"
           >
             <div className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-neutral-950 shrink-0">
@@ -143,16 +144,16 @@ export function ChatSidebar({
             <span className="font-bricolage text-[15px] tracking-tight font-medium uppercase text-white/90">
               CliniBridge
             </span>
-          </a>
+          </Link>
 
           {/* Back to home */}
-          <a
-            href="/"
+          <Link
+            to="/"
             className="flex items-center gap-2 text-white/25 hover:text-white/50 transition-colors text-[11px] font-mono tracking-wide mb-4"
           >
             <Icon icon="solar:arrow-left-linear" width={12} />
             <span>Back to home</span>
-          </a>
+          </Link>
 
           {/* New Session Button */}
           <button

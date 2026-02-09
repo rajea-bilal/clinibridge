@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChatPanel } from "@/components/Chat/ChatPanel";
 import { ChatSidebar } from "@/components/Chat/ChatSidebar";
 import {
@@ -8,7 +8,7 @@ import {
 } from "@/lib/chatStorage";
 import type { ConversationMeta } from "@/lib/chatStorage";
 import { Icon } from "@iconify/react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { z } from "zod";
 
 // @ts-expect-error — route path not in generated tree until `bun run dev` regenerates it
@@ -19,18 +19,47 @@ export const Route = createFileRoute("/chat")({
   }),
 });
 
+/** Compute a fallback conversation ID once — never changes across re-renders. */
+function getInitialActiveId(searchC?: string): string {
+  if (searchC) return searchC;
+  const existing = listConversations();
+  return existing.length > 0 ? existing[0].id : generateId();
+}
+
 function ChatPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  // ── Stable activeId ────────────────────────────────────────────────────
+  // Stored in state so it never flickers even if the router momentarily
+  // re-evaluates routes and drops search params. The fallback UUID is
+  // computed once at mount time and never changes.
+  const [activeId, setActiveId] = useState(() => getInitialActiveId(search.c));
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<ConversationMeta[]>(
     () => listConversations()
   );
-  const search = Route.useSearch();
-  const navigate = Route.useNavigate();
-  const activeId = (() => {
-    if (search.c) return search.c;
-    const existing = listConversations();
-    return existing.length > 0 ? existing[0].id : generateId();
-  })();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // When search.c changes externally (browser back/forward, sidebar click),
+  // sync it into state. Ignore undefined — that's a transient state from
+  // route re-evaluation.
+  const prevSearchC = useRef(search.c);
+  useEffect(() => {
+    if (search.c && search.c !== prevSearchC.current) {
+      prevSearchC.current = search.c;
+      setActiveId(search.c);
+    }
+  }, [search.c]);
+
+  // Keep URL in sync with activeId — one-way push.
+  // `replace: true` prevents polluting browser history.
+  useEffect(() => {
+    if (search.c !== activeId) {
+      navigate({ search: { c: activeId }, replace: true });
+    }
+    // Only run when activeId changes, not when search changes (avoids loop).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, navigate]);
 
   const refreshConversations = useCallback(() => {
     setConversations(listConversations());
@@ -42,20 +71,14 @@ function ChatPage() {
     refreshConversations();
   }, [activeId, refreshConversations]);
 
-  useEffect(() => {
-    if (search.c !== activeId) {
-      navigate({ search: { ...search, c: activeId }, replace: true });
-    }
-  }, [activeId, navigate, search]);
-
   function handleNewChat() {
     const newId = generateId();
-    navigate({ search: { ...search, c: newId } });
+    setActiveId(newId);
     setSidebarOpen(false);
   }
 
   function handleSelectConversation(id: string) {
-    navigate({ search: { ...search, c: id } });
+    setActiveId(id);
   }
 
   // Load initial messages for the active conversation
@@ -68,13 +91,8 @@ function ChatPage() {
     setConversations(updated);
     // If active was deleted, switch to most recent or new
     if (!updated.find((c) => c.id === activeId)) {
-      navigate({
-        search: {
-          ...search,
-          c: updated.length > 0 ? updated[0].id : generateId(),
-        },
-        replace: true,
-      });
+      const next = updated.length > 0 ? updated[0].id : generateId();
+      setActiveId(next);
     }
   }
 
@@ -106,17 +124,17 @@ function ChatPage() {
         {/* Mobile nav toggle */}
         <div className="md:hidden flex items-center justify-between p-4 border-b border-white/[0.05] bg-neutral-950/80 backdrop-blur-2xl z-20">
           <div className="flex items-center gap-2.5">
-            <a href="/" className="text-white/30 hover:text-white/50 transition-colors duration-300">
+            <Link to="/" className="text-white/30 hover:text-white/50 transition-colors duration-300">
               <Icon icon="solar:arrow-left-linear" width={16} />
-            </a>
-            <a href="/" className="flex items-center gap-2">
+            </Link>
+            <Link to="/" className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-neutral-950 shrink-0">
                 <Icon icon="solar:health-bold-duotone" width={12} />
               </div>
               <span className="font-bricolage font-medium text-sm uppercase tracking-tight text-white/80">
                 CliniBridge
               </span>
-            </a>
+            </Link>
           </div>
           <button
             type="button"

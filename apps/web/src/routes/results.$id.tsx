@@ -71,7 +71,16 @@ function ResultsPage() {
                 Mode: {search.mode}
               </p>
             </div>
-            <TrialResultsList trials={search.results} />
+            <TrialResultsList
+              trials={search.results}
+              patientProfile={{
+                age: search.age,
+                condition: search.condition,
+                location: search.location || undefined,
+                medications: search.medications,
+                additionalInfo: search.additionalInfo,
+              }}
+            />
           </div>
         )}
       </main>

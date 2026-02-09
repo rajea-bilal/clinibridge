@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { TrialSearchForm } from "@/components/Form/TrialSearchForm";
 import { TrialResultsList } from "@/components/Trials/TrialResultsList";
+import type { PatientProfileForEligibility } from "@/components/Trials/TrialCard";
 import type { TrialSearchInput, TrialSummary } from "@/lib/types";
 import { Icon } from "@iconify/react";
 
@@ -16,8 +17,17 @@ function FindPage() {
   const [error, setError] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [patientProfile, setPatientProfile] = useState<PatientProfileForEligibility | undefined>();
 
   async function handleSearch(input: TrialSearchInput) {
+    // Capture patient profile for eligibility breakdown
+    setPatientProfile({
+      age: input.age,
+      condition: input.condition,
+      location: input.location,
+      medications: input.medications?.split(",").map((m) => m.trim()).filter(Boolean),
+      additionalInfo: input.additionalInfo,
+    });
     setIsLoading(true);
     setError(undefined);
     setHasSearched(true);
@@ -139,6 +149,7 @@ function FindPage() {
                 error={error}
                 isLoading={isLoading}
                 totalFromApi={totalFromApi}
+                patientProfile={patientProfile}
               />
             </div>
           )}

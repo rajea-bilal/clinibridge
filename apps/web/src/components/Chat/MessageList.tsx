@@ -160,16 +160,22 @@ function MessageBubble({ message }: { message: UIMessage }) {
 
             case "tool-searchTrials":
               if (part.state === "output-available") {
+                const toolOutput = part.output as {
+                  trials: TrialSummary[];
+                  error?: string;
+                  count?: number;
+                  patientProfile?: {
+                    age: number;
+                    condition: string;
+                    location: string;
+                    medications?: string[];
+                    additionalInfo?: string;
+                  };
+                };
                 return (
                   <TrialCardsFromChat
                     key={key}
-                    data={
-                      part.output as {
-                        trials: TrialSummary[];
-                        error?: string;
-                        count?: number;
-                      }
-                    }
+                    data={toolOutput}
                   />
                 );
               }

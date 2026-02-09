@@ -147,11 +147,19 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
   component: RootDocument,
   beforeLoad: async (ctx) => {
-    const { token } = await fetchAuth();
-    if (token) {
-      ctx.context.convexQueryClient.serverHttpClient?.setAuth(token);
+    try {
+      const { token } = await fetchAuth();
+      if (token) {
+        ctx.context.convexQueryClient.serverHttpClient?.setAuth(token);
+      }
+      return { token };
+    } catch (err) {
+      // Auth failures must not crash the route tree — this runs on every
+      // navigation. A transient failure (HMR, network hiccup) would
+      // otherwise remount the entire page and wipe in-memory chat state.
+      console.warn("[root] fetchAuth failed, continuing without token:", err);
+      return { token: null };
     }
-    return { token };
   },
 });
 

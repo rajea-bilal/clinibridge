@@ -1,11 +1,71 @@
+import { useState, useCallback } from "react";
+import { useAction } from "convex/react";
+import { api } from "@yugen/backend/convex/_generated/api";
 import type { TrialSummary } from "@/lib/types";
 import { Icon } from "@iconify/react";
+import { EligibilityDrawer } from "@/components/Eligibility/EligibilityDrawer";
+import type { EligibilityBreakdown } from "@/components/Eligibility/types";
+
+export interface PatientProfileForEligibility {
+  age: number;
+  sex?: string;
+  location?: string;
+  condition: string;
+  medications?: string[];
+  additionalInfo?: string;
+}
 
 interface TrialCardProps {
   trial: TrialSummary;
+  patientProfile?: PatientProfileForEligibility;
 }
 
-export function TrialCard({ trial }: TrialCardProps) {
+export function TrialCard({ trial, patientProfile }: TrialCardProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [eligibilityData, setEligibilityData] = useState<EligibilityBreakdown | null>(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [eligibilityError, setEligibilityError] = useState<string | null>(null);
+
+  const getEligibilityBreakdown = useAction(api.eligibility.getEligibilityBreakdown);
+
+  const handleUnderstandTrial = useCallback(async () => {
+    setDrawerOpen(true);
+
+    // If we already have data for this trial, don't re-fetch
+    if (eligibilityData?.trialId === trial.nctId) return;
+
+    setEligibilityLoading(true);
+    setEligibilityError(null);
+
+    try {
+      const profile = patientProfile ?? {
+        age: 0,
+        condition: trial.conditions[0] ?? "Not specified",
+      };
+
+      const result = await getEligibilityBreakdown({
+        nctId: trial.nctId,
+        patientProfile: {
+          age: profile.age,
+          sex: profile.sex,
+          location: profile.location,
+          condition: profile.condition,
+          medications: profile.medications,
+          additionalInfo: profile.additionalInfo,
+        },
+      });
+
+      setEligibilityData(result as unknown as EligibilityBreakdown);
+    } catch (err) {
+      console.error("[TrialCard] Eligibility fetch error:", err);
+      setEligibilityError(
+        "Unable to load eligibility breakdown. Please try again."
+      );
+    } finally {
+      setEligibilityLoading(false);
+    }
+  }, [trial.nctId, trial.conditions, patientProfile, eligibilityData?.trialId, getEligibilityBreakdown]);
+
   return (
     <div className="group relative rounded-2xl bg-white/[0.03] border border-white/[0.05] backdrop-blur-sm overflow-hidden transition-all duration-500 hover:bg-white/[0.05] hover:border-white/[0.08] hover:shadow-[0_0_30px_rgba(16,185,129,0.03)]">
       {/* Top accent line */}
@@ -86,8 +146,20 @@ export function TrialCard({ trial }: TrialCardProps) {
         {/* Divider */}
         <div className="h-[1px] bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
 
-        {/* Footer: CTA */}
-        <div className="flex items-center justify-end">
+        {/* Footer: CTAs */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleUnderstandTrial}
+            className="group/understand flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 hover:bg-emerald-500/[0.12] hover:border-emerald-500/25 transition-all duration-300 text-[12px] text-emerald-400/70 hover:text-emerald-300 font-light tracking-wide cursor-pointer"
+          >
+            <Icon
+              icon="solar:document-text-linear"
+              width={13}
+              className="text-emerald-400/50 group-hover/understand:text-emerald-400/80 transition-colors duration-300"
+            />
+            Understand this trial
+          </button>
           <a
             href={trial.url}
             target="_blank"
@@ -102,6 +174,17 @@ export function TrialCard({ trial }: TrialCardProps) {
             />
           </a>
         </div>
+
+        {/* Eligibility Drawer/Modal */}
+        <EligibilityDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          trialTitle={trial.title}
+          nctId={trial.nctId}
+          data={eligibilityData}
+          isLoading={eligibilityLoading}
+          error={eligibilityError}
+        />
       </div>
     </div>
   );

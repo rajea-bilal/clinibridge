@@ -11,6 +11,8 @@
 import type * as auth from "../auth.js";
 import type * as costEstimator from "../costEstimator.js";
 import type * as devTools from "../devTools.js";
+import type * as eligibility from "../eligibility.js";
+import type * as eligibilityQueries from "../eligibilityQueries.js";
 import type * as exampleRbacUsage from "../exampleRbacUsage.js";
 import type * as featuredTrials from "../featuredTrials.js";
 import type * as featuredTrialsCache from "../featuredTrialsCache.js";
@@ -41,6 +43,8 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   costEstimator: typeof costEstimator;
   devTools: typeof devTools;
+  eligibility: typeof eligibility;
+  eligibilityQueries: typeof eligibilityQueries;
   exampleRbacUsage: typeof exampleRbacUsage;
   featuredTrials: typeof featuredTrials;
   featuredTrialsCache: typeof featuredTrialsCache;

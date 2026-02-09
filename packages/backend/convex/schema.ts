@@ -131,6 +131,17 @@ export default defineSchema({
     fetchedAt: v.number(),
   }).index("by_category", ["category"]),
 
+  // Eligibility criteria cache (7-day TTL, keyed by nctId)
+  eligibilityCache: defineTable({
+    nctId: v.string(),
+    eligibilityCriteria: v.optional(v.string()),
+    minimumAge: v.optional(v.string()),
+    maximumAge: v.optional(v.string()),
+    sex: v.optional(v.string()),
+    healthyVolunteers: v.optional(v.string()),
+    fetchedAt: v.number(),
+  }).index("by_nctId", ["nctId"]),
+
   // Webhook event log
   webhookEvents: defineTable({
     id: v.optional(v.string()),

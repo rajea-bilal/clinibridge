@@ -25,6 +25,7 @@ isProject: false
 - [x] navbar-and-about-page
 - [x] form-ui-visual-consistency
 - [x] code-review-and-error-handling
+- [x] refined-trial-search-logic
 
 ## Notes
 
@@ -217,3 +218,12 @@ isProject: false
 - **Code quality**: Clean separation of concerns, consistent naming, proper TypeScript annotations, no magic numbers (constants at top of files), proper cleanup in useEffect hooks.
 - **Accessibility**: Proper ARIA labels on form inputs (`aria-invalid`), semantic HTML, keyboard navigation works, focus states visible.
 - **No regressions**: All existing functionality preserved — chat, form search, trial cards, navigation, persistence all working as expected.
+
+### refined-trial-search-logic (completed)
+
+- **Status filter broadened**: Changed `filter.overallStatus` from just `RECRUITING` to `RECRUITING,NOT_YET_RECRUITING,ENROLLING_BY_INVITATION,ACTIVE_NOT_RECRUITING`. Rare diseases often have few purely "recruiting" trials — the broader filter captures all trials actively accepting or about to accept patients.
+- **Location normalization**: Added `LOCATION_ALIASES` map in `clinicalTrials.ts` that expands common abbreviations (`US` → `United States`, `USA` → `United States`, `UK` → `United Kingdom`, `GB` → `United Kingdom`). The ClinicalTrials.gov API `query.locn` parameter does free-text matching, so abbreviations like "US" failed to match "United States" in trial location fields. Updated `normalizeLocation()` to apply the alias before querying.
+- **Tool schema guidance**: Updated `searchTrialsToolSchema` location field description to instruct the AI model to always use full country names (e.g. "United States") instead of abbreviations — defense in depth alongside the server-side alias map.
+- **Fallback search strategy**: Refactored `fetchTrials()` to use a new `runSearch()` helper and a 3-attempt fallback cascade: (1) full query with condition + synonyms + location, (2) primary condition + location only (drops synonyms that may narrow results), (3) primary condition only, worldwide (drops location filter). Returns the first non-empty result set. Each attempt is individually logged with its label for debugging.
+- **Zod v4 compatibility fix**: Changed `z.record(z.unknown())` to `z.record(z.string(), z.unknown())` in `studiesResponseSchema`. Zod v4 requires explicit key+value validators. This was a latent bug — never triggered before because the API always returned 0 results due to the status/location issues above.
+- **Verified**: Rett syndrome search now returns 10 active trials in the US (was 0). Includes gene therapy (NGN-401), Bionetide (NA-921), Trofinetide cognitive study, Rett Global Registry, and more.

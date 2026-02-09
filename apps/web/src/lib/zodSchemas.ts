@@ -10,7 +10,7 @@ export const searchTrialsToolSchema = z.object({
     .string()
     .optional()
     .describe(
-      "City, state, or country to filter trials by location. Omit or leave empty for worldwide search — do NOT pass phrases like 'anywhere in the world'."
+      "Country or region to filter trials by location. Use the FULL country name (e.g. 'United States', 'United Kingdom', 'Germany') — never abbreviations like 'US' or 'UK'. Omit or leave empty for worldwide search — do NOT pass phrases like 'anywhere in the world'."
     ),
   synonyms: z
     .array(z.string())

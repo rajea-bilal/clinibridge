@@ -12,6 +12,26 @@ isProject: false
 - **About page body bleed**: Global CSS sets `html, body { bg-white }`. Dark pages like `/about` show a white flash below the footer when content is short. Workaround: `useEffect` forces body bg to `#0a0a0a` on mount and cleans up on unmount. Proper fix: set body bg dark globally or per-route via a layout.
 - **Footer invisible on non-landing pages**: Footer uses `animate-on-scroll` (starts at `opacity: 0`, paused). Only pages that call `useScrollAnimation()` trigger it. Added the hook to `/about` — any new page using `<Footer />` also needs it or the footer stays invisible.
 
+### Clinical trial search returned 0 results for valid conditions (fixed)
+
+**Problem**: Searching for "Rett syndrome" (and likely other rare diseases) in the US returned 0 trials, even though ClinicalTrials.gov had 52 matching studies (12 recruiting). The app showed "No matching trials found."
+
+**Root causes** (three compounding issues):
+
+1. **Status filter too restrictive**: `filter.overallStatus` was set to only `RECRUITING`. For rare diseases, many active trials are `ENROLLING_BY_INVITATION` or `ACTIVE_NOT_RECRUITING`, so filtering to just `RECRUITING` missed most of them.
+2. **Location abbreviation mismatch**: The AI passed `"US"` as the location, but ClinicalTrials.gov's `query.locn` parameter does free-text matching on location fields where countries are stored as full names (e.g. `"United States"`). The 2-character `"US"` matched nothing.
+3. **No fallback strategy**: When the combination of strict status + bad location yielded 0 results, the function returned empty with no retry.
+4. **Latent Zod v4 crash**: `z.record(z.unknown())` was Zod v3 syntax — Zod v4 requires two args (`z.record(z.string(), z.unknown())`). This never crashed before because the code path was unreachable with 0 API results. Once the status/location fixes let real data through, it threw `TypeError: Cannot read properties of undefined (reading '_zod')`.
+
+**Fix**:
+
+1. Expanded `filter.overallStatus` to `RECRUITING,NOT_YET_RECRUITING,ENROLLING_BY_INVITATION,ACTIVE_NOT_RECRUITING`.
+2. Added `LOCATION_ALIASES` map that expands common abbreviations (`US` → `United States`, `UK` → `United Kingdom`, etc.). Updated tool schema description to instruct the AI to use full country names.
+3. Added 3-attempt fallback in `fetchTrials`: (1) full query with synonyms + location, (2) drop synonyms, (3) drop location entirely (worldwide). Returns first non-empty result.
+4. Fixed Zod schema to `z.record(z.string(), z.unknown())`.
+
+**Result**: Query now returns 10 active Rett syndrome trials in the US (was 0).
+
 ## Refinements / Improvements
 
 ### Trial cards showed unfiltered results — scoring never reached the UI (fixed)

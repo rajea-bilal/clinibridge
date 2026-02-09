@@ -5,7 +5,7 @@ import alchemy from "alchemy/cloudflare/tanstack-start";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     tsconfigPaths({
       root: process.cwd(), // Only resolve from current directory
@@ -14,7 +14,9 @@ export default defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    alchemy(), // Not needed for local dev — requires `alchemy dev` to create wrangler config
+    // Only include alchemy for builds (deployment). In dev, SSR runs in Bun
+    // where process.env works natively — no workerd sandbox needed.
+    ...(command === "build" ? [alchemy()] : []),
   ],
   resolve: {
     dedupe: ["convex/react", "convex"], // Force single instance of convex
@@ -23,4 +25,4 @@ export default defineConfig({
     noExternal: ["@convex-dev/better-auth"], // Bundle better-auth during SSR
   },
   clearScreen: false,
-});
+}));

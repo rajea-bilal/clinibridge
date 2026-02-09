@@ -9,22 +9,41 @@ const PAGE_SIZE = 10;
 const RETRY_DELAYS_MS = [1000, 2000];
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Statuses that indicate a trial is actively accepting or about to accept patients */
+const ACTIVE_STATUSES = [
+  "RECRUITING",
+  "NOT_YET_RECRUITING",
+  "ENROLLING_BY_INVITATION",
+  "ACTIVE_NOT_RECRUITING",
+].join(",");
+
+/** Map common abbreviations/short names to the full country name used by ClinicalTrials.gov */
+const LOCATION_ALIASES: Record<string, string> = {
+  us: "United States",
+  usa: "United States",
+  uk: "United Kingdom",
+  gb: "United Kingdom",
+};
+
 const cache = new Map<string, { expiresAt: number; trials: TrialSummary[] }>();
 
 const studiesResponseSchema = z.object({
-  studies: z.array(z.record(z.unknown())).optional(),
+  studies: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
 /** Phrases that mean "no location filter" — user wants worldwide results. */
 const GLOBAL_LOCATION_PATTERNS =
   /^(anywhere|everywhere|worldwide|any\s*(where\s+in\s+the\s+)?world|global(ly)?|no\s*preference|all\s*countries|international(ly)?|any\s*location|any\s*country|doesn'?t?\s*matter|does\s*not\s*matter)$/i;
 
-/** Returns empty string if location is a "worldwide" phrase, otherwise trims it. */
+/** Returns empty string if location is a "worldwide" phrase, otherwise normalizes it. */
 function normalizeLocation(raw?: string): string {
   if (!raw) return "";
   const trimmed = raw.trim();
   if (!trimmed) return "";
-  return GLOBAL_LOCATION_PATTERNS.test(trimmed) ? "" : trimmed;
+  if (GLOBAL_LOCATION_PATTERNS.test(trimmed)) return "";
+  // Expand well-known abbreviations to the full name ClinicalTrials.gov uses
+  const alias = LOCATION_ALIASES[trimmed.toLowerCase()];
+  return alias ?? trimmed;
 }
 
 interface FetchTrialsOptions {
@@ -76,9 +95,67 @@ export async function fetchTrials(
     JSON.stringify({ conditionTerms, conditionQuery })
   );
 
+  // --- Attempt 1: full query (condition + synonyms + location + active statuses) ---
+  const attempt1 = await runSearch({
+    conditionQuery,
+    location,
+    label: "attempt-1 (full)",
+  });
+  if (attempt1.error) return attempt1;
+  if (attempt1.trials.length > 0) {
+    cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, trials: attempt1.trials });
+    console.log("[fetchTrials] ===== END — returning", attempt1.trials.length, "trials (attempt 1) =====");
+    return attempt1;
+  }
+
+  // --- Attempt 2: drop synonyms, use only the primary condition ---
+  if (synonyms.length > 0) {
+    console.log("[fetchTrials] Attempt 2: retrying with primary condition only (no synonyms)");
+    const attempt2 = await runSearch({
+      conditionQuery: condition,
+      location,
+      label: "attempt-2 (no synonyms)",
+    });
+    if (attempt2.error) return attempt2;
+    if (attempt2.trials.length > 0) {
+      cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, trials: attempt2.trials });
+      console.log("[fetchTrials] ===== END — returning", attempt2.trials.length, "trials (attempt 2) =====");
+      return attempt2;
+    }
+  }
+
+  // --- Attempt 3: drop location filter entirely ---
+  if (location) {
+    console.log("[fetchTrials] Attempt 3: retrying without location filter");
+    const attempt3 = await runSearch({
+      conditionQuery: condition,
+      location: "",
+      label: "attempt-3 (no location)",
+    });
+    if (attempt3.error) return attempt3;
+    if (attempt3.trials.length > 0) {
+      cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, trials: attempt3.trials });
+      console.log("[fetchTrials] ===== END — returning", attempt3.trials.length, "trials (attempt 3, worldwide) =====");
+      return attempt3;
+    }
+  }
+
+  // Nothing found at all
+  console.log("[fetchTrials] ===== END — 0 trials after all attempts =====");
+  return { trials: [] };
+}
+
+/** Execute a single search against ClinicalTrials.gov and parse the results. */
+async function runSearch(opts: {
+  conditionQuery: string;
+  location: string;
+  label: string;
+}): Promise<FetchTrialsResult> {
+  const { conditionQuery, location, label } = opts;
+
   const params = new URLSearchParams({
     "query.cond": conditionQuery,
-    "filter.overallStatus": "RECRUITING",
+    "filter.overallStatus": ACTIVE_STATUSES,
     pageSize: String(PAGE_SIZE),
     format: "json",
   });
@@ -88,27 +165,27 @@ export async function fetchTrials(
   }
 
   const url = `${BASE_URL}?${params.toString()}`;
-  console.log("[fetchTrials] Full API URL:", url);
+  console.log(`[fetchTrials] [${label}] API URL:`, url);
 
   try {
     const response = await requestWithRetry(
       url,
       location ? LOCATION_TIMEOUT_MS : TIMEOUT_MS
     );
-    console.log("[fetchTrials] HTTP response status:", response.status);
+    console.log(`[fetchTrials] [${label}] HTTP status:`, response.status);
 
     if (!response.ok) {
       const errMsg =
         response.status === 429
           ? "ClinicalTrials.gov rate limit reached. Please try again later."
           : `ClinicalTrials.gov returned status ${response.status}`;
-      console.log("[fetchTrials] Non-OK response, returning error:", errMsg);
+      console.log(`[fetchTrials] [${label}] Non-OK response:`, errMsg);
       return { trials: [], error: errMsg };
     }
 
     const json = (await response.json()) as Record<string, unknown>;
     console.log(
-      "[fetchTrials] Raw JSON keys:",
+      `[fetchTrials] [${label}] Raw JSON keys:`,
       Object.keys(json),
       "| studies array?",
       Array.isArray(json?.studies),
@@ -119,7 +196,7 @@ export async function fetchTrials(
     const parsed = studiesResponseSchema.safeParse(json);
     if (!parsed.success) {
       console.log(
-        "[fetchTrials] Zod parse FAILED:",
+        `[fetchTrials] [${label}] Zod parse FAILED:`,
         parsed.error.issues.slice(0, 3)
       );
       return {
@@ -130,7 +207,7 @@ export async function fetchTrials(
     }
 
     const studies = parsed.data.studies ?? [];
-    console.log("[fetchTrials] Studies after Zod parse:", studies.length);
+    console.log(`[fetchTrials] [${label}] Studies after Zod parse:`, studies.length);
 
     const rawTrials: TrialRaw[] = [];
     let nullCount = 0;
@@ -141,7 +218,7 @@ export async function fetchTrials(
       } else {
         nullCount++;
         console.log(
-          "[fetchTrials] parseRawTrial returned null for study index",
+          `[fetchTrials] [${label}] parseRawTrial returned null for study index`,
           i,
           "| has protocolSection?",
           !!studies[i]?.protocolSection,
@@ -154,32 +231,26 @@ export async function fetchTrials(
       }
     }
     console.log(
-      "[fetchTrials] parseRawTrial results: valid =",
+      `[fetchTrials] [${label}] parseRawTrial results: valid =`,
       rawTrials.length,
       "| null =",
       nullCount
     );
 
     const summaries = rawTrials.map(normalizeToSummary);
-    console.log("[fetchTrials] Final summaries count:", summaries.length);
+    console.log(`[fetchTrials] [${label}] Final summaries:`, summaries.length);
     console.log(
-      "[fetchTrials] Trial IDs:",
+      `[fetchTrials] [${label}] Trial IDs:`,
       summaries.map((s) => s.nctId)
     );
     console.log(
-      "[fetchTrials] Trial statuses:",
+      `[fetchTrials] [${label}] Trial statuses:`,
       summaries.map((s) => s.status)
     );
 
-    cache.set(cacheKey, {
-      expiresAt: Date.now() + CACHE_TTL_MS,
-      trials: summaries,
-    });
-
-    console.log("[fetchTrials] ===== END — returning", summaries.length, "trials =====");
     return { trials: summaries };
   } catch (err: unknown) {
-    console.error("[fetchTrials] EXCEPTION:", err);
+    console.error(`[fetchTrials] [${label}] EXCEPTION:`, err);
     if (err instanceof DOMException && err.name === "AbortError") {
       return {
         trials: [],

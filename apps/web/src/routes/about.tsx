@@ -158,6 +158,11 @@ function AboutPage() {
                     title: "You get a scored shortlist",
                     desc: "Strong match, possible match, or unlikely — with a plain-English explanation of why. No jargon. No guesswork.",
                   },
+                  {
+                    num: "5",
+                    title: "Tap to understand any trial",
+                    desc: "Hit \"Understand this trial\" and the AI translates every eligibility criterion into plain English — what's met, what's unclear, and a checklist of things to ask the research team.",
+                  },
                 ].map((step) => (
                   <div key={step.num} className="relative flex gap-5 group">
                     {/* Dot on the timeline */}
@@ -186,11 +191,19 @@ function AboutPage() {
           {/* ── Under the Hood ── */}
           <Section label="Under the Hood" title="AI that reads eligibility criteria so you don't have to." delay="0.5s">
             <p className="text-white/45 text-[15px] leading-[1.85] max-w-[640px]">
-              This isn't a search engine with a chatbot on top. The AI does four
+              This isn't a search engine with a chatbot on top. The AI does five
               distinct jobs: it understands casual language, expands your words
               into medical terminology, scores each trial against your specific
-              profile, and rewrites everything in language a non-medical person
-              can actually understand.
+              profile, rewrites everything in language a non-medical person
+              can actually understand, and breaks down each trial's full
+              eligibility criteria into a personalised checklist.
+            </p>
+            <p className="text-white/45 text-[15px] leading-[1.85] max-w-[640px] mt-5">
+              That last part matters most. Eligibility criteria are written for
+              doctors — dense, jargon-heavy, sometimes pages long. CliniBridge
+              reads every line, checks it against your profile, and tells you
+              what's likely met, what needs clarification, and exactly what to
+              ask when you contact the research team.
             </p>
             <p className="text-white/45 text-[15px] leading-[1.85] max-w-[640px] mt-5">
               The matching that takes a research coordinator an hour per patient

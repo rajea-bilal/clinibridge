@@ -7,6 +7,7 @@ AI-powered clinical trial matching platform that connects rare disease patients 
 - **AI Chat Interface** — Natural language clinical trial search powered by GPT-4o-mini
 - **Form-Based Search** — Traditional search with condition, age, location, medications
 - **Intelligent Scoring** — AI-powered trial matching with eligibility analysis
+- **Understand This Trial** — On-demand plain-English eligibility breakdown with preparation checklist
 - **Real-time Data** — Direct integration with ClinicalTrials.gov v2 API
 - **Conversation History** — Persistent chat sessions with localStorage
 - **Modern UI** — Dark cinematic theme with emerald accents and glass morphism
@@ -28,11 +29,12 @@ clinibridge/
 │   └── web/                    # Main application
 │       ├── src/
 │       │   ├── components/
-│       │   │   ├── Chat/       # Chat interface components
-│       │   │   ├── Form/       # Search form components
-│       │   │   ├── Trials/     # Trial cards and lists
-│       │   │   ├── landing/    # Landing page sections
-│       │   │   └── prompt-kit/ # Chat UI library
+│       │   │   ├── Chat/          # Chat interface components
+│       │   │   ├── Eligibility/   # "Understand this trial" drawer/modal
+│       │   │   ├── Form/          # Search form components
+│       │   │   ├── Trials/        # Trial cards and lists
+│       │   │   ├── landing/       # Landing page sections
+│       │   │   └── prompt-kit/    # Chat UI library
 │       │   ├── lib/
 │       │   │   ├── clinicalTrials.ts  # ClinicalTrials.gov API client
 │       │   │   ├── scoreTrials.ts     # AI scoring logic
@@ -51,9 +53,11 @@ clinibridge/
 └── packages/
     └── backend/                 # Convex backend
         └── convex/
-            ├── schema.ts        # Database schema
-            ├── searchTrials.ts  # Trial search actions
-            └── sessions.ts      # Chat session storage
+            ├── schema.ts              # Database schema
+            ├── searchTrials.ts        # Trial search actions
+            ├── sessions.ts            # Chat session storage
+            ├── eligibility.ts         # Eligibility breakdown action (LLM)
+            └── eligibilityQueries.ts  # Eligibility cache queries/mutations
 ```
 
 ## Routes
@@ -175,6 +179,17 @@ Both paths use the same AI scoring pipeline:
 4. Filter out "Unlikely" matches
 5. Sort by score, cap at 4 results
 
+### Understand This Trial
+On-demand eligibility breakdown accessible from any trial card via the "Understand this trial" button:
+1. Fetches raw eligibility criteria from ClinicalTrials.gov (cached 7 days in Convex)
+2. Parses inclusion/exclusion sections from the raw text
+3. GPT-4o-mini translates each criterion into plain English (suitable for a 16-year-old)
+4. Each criterion classified as: met (profile matches), not met (profile conflicts), or unknown (can't determine)
+5. Generates a preparation checklist from all "unknown" items — things to discuss with the trial coordinator
+6. Renders in a responsive drawer (mobile bottom sheet / desktop modal) with collapsible sections and status pills
+
+Key design constraint: **never claims eligibility** — only helps users understand what the trial requires. Disclaimer always visible.
+
 ### Landing Page
 - Cinematic hero with glassmorphism CTAs
 - Featured trials grid with filter pills
@@ -195,6 +210,12 @@ Both paths use the same AI scoring pipeline:
 - Structured output via Zod schemas
 - Scores trials 0–100 based on eligibility
 - Extracts match reasons and labels
+
+**Eligibility Breakdown (Convex action):**
+- Fetches per-trial eligibility from `https://clinicaltrials.gov/api/v2/studies/{NCT_ID}`
+- Caches raw criteria in Convex `eligibilityCache` table (7-day TTL)
+- LLM call with strict JSON schema, retry-once on validation failure, fallback on double failure
+- Returns structured breakdown: inclusion/exclusion criteria, preparation checklist, disclaimer, metadata
 
 ## Scripts
 

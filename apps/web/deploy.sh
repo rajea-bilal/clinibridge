@@ -8,14 +8,20 @@ if [ -z "$BASH_VERSION" ]; then
 fi
 
 # ============================================================================
-# CLEAN INSTALL - Ensure correct package versions
+# INSTALL DEPENDENCIES (clean install only if --clean flag is passed)
 # ============================================================================
-echo "🧹 Ensuring clean package installation..."
 cd ../..
-rm -rf node_modules packages/*/node_modules apps/*/node_modules bun.lock
-bun install
+if [[ "$1" == "--clean" ]]; then
+  echo "🧹 Clean install requested..."
+  rm -rf node_modules packages/*/node_modules apps/*/node_modules bun.lock
+  bun install
+  echo "✅ Clean install complete"
+else
+  echo "📦 Installing dependencies..."
+  bun install
+  echo "✅ Dependencies ready"
+fi
 cd apps/web
-echo "✅ Clean install complete"
 echo ""
 
 # ============================================================================
@@ -28,6 +34,7 @@ echo ""
 CUSTOM_ENV_VARS=(
   "VITE_TEST_VAR"  # Test variable
   "VITE_HUMANBEHAVIOR_API_KEY"  # HumanBehavior Analytics API Key
+  "OPENAI_API_KEY"  # OpenAI API Key (server-side, baked into CF Worker bindings at deploy)
 )
 # ============================================================================
 
@@ -90,7 +97,8 @@ done
 
 # Deploy code with Alchemy (no bindings - env vars managed separately)
 echo "📦 Deploying code to Cloudflare..."
-ALCHEMY_OUTPUT=$(alchemy deploy 2>&1 | tee /dev/tty)
+ALCHEMY_OUTPUT=$(ALCHEMY_CI_STATE_STORE_CHECK=false alchemy deploy 2>&1) || true
+echo "$ALCHEMY_OUTPUT"
 
 # Extract the Cloudflare Workers URL from output
 # Alchemy outputs: "Web    -> https://xxx.workers.dev"

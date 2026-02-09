@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run check 2>&1 | tail -20",
+            "timeout": 30,
+            "statusMessage": "Running Biome lint + format..."
+          }
+        ]
+      }
+    ]
+  },
+  "mcpToolSearch": true
+}

@@ -1,4 +1,4 @@
-import { HeartPulse } from "lucide-react";
+import { config } from "@root/config";
 import { Link } from "@tanstack/react-router";
 
 export function Navbar() {
@@ -7,9 +7,11 @@ export function Navbar() {
       <nav className="flex w-full max-w-4xl items-center justify-between transition-all duration-300 bg-neutral-900/60 border border-white/10 rounded-full p-2 pl-4 md:pr-6 md:pl-6 shadow-2xl backdrop-blur-xl">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black shrink-0">
-            <HeartPulse className="size-[18px]" />
-          </div>
+          <img
+            src={config.metadata.logo}
+            alt="CliniBridge"
+            className="w-10 h-10 shrink-0 object-contain"
+          />
           <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }} className="text-lg tracking-tight font-medium uppercase hidden sm:block">
             CliniBridge
           </span>

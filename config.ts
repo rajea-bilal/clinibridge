@@ -35,13 +35,13 @@ export const config = {
      * Favicon path (relative to public folder)
      * Example: "/assets/logos/favicon.png"
      */
-    favicon: "/assets/logos/yugen.png",
+    favicon: "/assets/logos/logo.png",
 
     /**
      * Logo path used in navigation and branding (relative to public folder)
      * Example: "/assets/logos/logo.png"
      */
-    logo: "/assets/logos/yugen.png",
+    logo: "/assets/logos/logo.png",
 
     /**
      * Open Graph image path for social media sharing (relative to public folder)

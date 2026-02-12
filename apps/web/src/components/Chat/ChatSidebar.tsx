@@ -1,6 +1,7 @@
 import type { ConversationMeta } from "@/lib/chatStorage";
 import { deleteConversation, clearAllConversations } from "@/lib/chatStorage";
 import { cn } from "@/lib/utils";
+import { config } from "@root/config";
 import { Icon } from "@iconify/react";
 import { Link } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
@@ -138,9 +139,11 @@ export function ChatSidebar({
             to="/"
             className="flex items-center gap-2.5 mb-5 group/logo hover:opacity-80 transition-opacity"
           >
-            <div className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-neutral-950 shrink-0">
-              <Icon icon="solar:health-bold-duotone" width={15} />
-            </div>
+            <img
+              src={config.metadata.logo}
+              alt="CliniBridge"
+              className="w-9 h-9 shrink-0 object-contain"
+            />
             <span className="font-bricolage text-[15px] tracking-tight font-medium uppercase text-white/90">
               CliniBridge
             </span>

@@ -1,4 +1,4 @@
-import { HeartPulse } from "lucide-react";
+import { config } from "@root/config";
 
 export function Footer() {
   return (
@@ -7,9 +7,11 @@ export function Footer() {
         {/* Brand */}
         <div className="col-span-1 md:col-span-2">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black">
-              <HeartPulse className="size-[18px]" />
-            </div>
+            <img
+              src={config.metadata.logo}
+              alt="CliniBridge"
+              className="w-10 h-10 shrink-0 object-contain"
+            />
             <h2 style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }} className="text-2xl font-semibold uppercase">
               CliniBridge
             </h2>
